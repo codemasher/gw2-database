@@ -17,3 +17,4 @@
 #################
 
 inc/mysqli.inc.php
+cli/generated/
