@@ -2,6 +2,8 @@
 /**
  * variables.inc.php
  * created: 18.09.13
+ *
+ * This file defines some basic language arrays, some translations still needed.
  */
 
 /*
@@ -69,7 +71,5 @@ $infusions = array(
 	'es' => array('Defense','Offense','Utility'),
 	'fr' => array('Defense','Offense','Utility')
 );
-
-
 
 ?>

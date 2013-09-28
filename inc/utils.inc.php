@@ -12,6 +12,7 @@
 function wiki_check($items){
 	$wikis = array('de' => 'wiki-de', 'en' => 'wiki', 'es' => 'wiki-es', 'fr' => 'wiki-fr');
 	foreach($wikis as $lang => $wiki){
+		// file_get_contents is just the quick and dirty solution, i prefer solutions which don't require allow_url_fopen=true
 		$json[$lang] = json_decode(@file_get_contents('http://'.$wiki.'.guildwars2.com/api.php?action=query&format=json&titles='.implode('|', $items[$lang.'_url'])),1);
 		if(is_array($json[$lang]) && isset($json[$lang]['query']['pages'])){
 			foreach($json[$lang]['query']['pages'] as $page){
@@ -72,6 +73,7 @@ function check_int($val){
  *
  * @return string
  */
+//TODO: add code for all chatcode types
 function item_code($item_id){
 	return '[&'.base64_encode(chr(0x02).chr(0x01).chr($item_id%256).chr((int)($item_id/256)).chr(0x00).chr(0x00)).']';
 }
@@ -180,7 +182,5 @@ function pagination($total, $start, $limit, $request = null, $firstpage = 1, $ad
 	$pages['pagination'] = $pages['total'] > 1 ? '<div class="p-links-container">'.$pages['prev'].$pages['links'].$pages['next'].'</div>' : '';
 	return $pages;
 }
-
-
 
 ?>

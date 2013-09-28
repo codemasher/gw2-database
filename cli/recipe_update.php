@@ -11,19 +11,10 @@ error_reporting(E_ALL);
 date_default_timezone_set('Europe/Berlin');
 set_time_limit(0);
 
-// a bitmask for the disciplines
-define('Armorsmith', 0x1);
-define('Artificer', 0x2);
-define('Chef', 0x4);
-define('Huntsman', 0x8);
-define('Jeweler', 0x10);
-define('Leatherworker', 0x20);
-define('Tailor', 0x40);
-define('Weaponsmith', 0x80);
-
-require_once '../inc/mysqli.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/mysqli.inc.php
-require_once '../inc/request.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/request.inc.php
-require_once '../inc/utils.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/utils.inc.php
+require_once '../inc/mysqli.inc.php';
+require_once '../inc/variables.inc.php';
+require_once '../inc/request.inc.php';
+require_once '../inc/utils.inc.php';
 
 $n = "\n";
 

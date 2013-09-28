@@ -11,11 +11,9 @@ error_reporting(E_ALL);
 set_time_limit(0);
 $limit = 20;
 
-require_once '../inc/mysqli.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/mysqli.inc.php
-require_once '../inc/utils.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/utils.inc.php
+require_once '../inc/mysqli.inc.php';
+require_once '../inc/utils.inc.php';
 
-
-#sql_query('UPDATE `gw2_items` SET `wiki_checked` = 0');// WHERE `type` = ? AND `rarity` = ? AND LOWER(`name_de`) LIKE ? //,  array('Weapon', 'Rare', '%...%')
 
 $query = sql_query('SELECT `id`, `name_de`, `name_en`, `name_es`, `name_fr` FROM `gw2_items` WHERE `updated` = 1 AND `wiki_checked` = 0 ORDER BY `gw2_items`.`id`');//
 $count = count($query);

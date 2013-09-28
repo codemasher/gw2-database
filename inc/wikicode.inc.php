@@ -2,6 +2,8 @@
 /**
  * wikicode.inc.php
  * created: 17.09.13
+ *
+ * This file is a whole mess and work in progress...
  */
 
 /*

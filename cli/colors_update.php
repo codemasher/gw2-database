@@ -5,12 +5,10 @@
  */
 
 error_reporting(E_ALL);
-date_default_timezone_set('Europe/Berlin');
 set_time_limit(0);
-mb_internal_encoding('UTF-8');
 
-require_once '../inc/mysqli.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/mysqli.inc.php
-require_once '../inc/request.inc.php'; // https://github.com/codemasher/gw2api-tools/blob/master/inc/request.inc.php
+require_once '../inc/mysqli.inc.php';
+require_once '../inc/request.inc.php';
 
 $n = "\n";
 
