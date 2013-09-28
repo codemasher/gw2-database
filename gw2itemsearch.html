@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="de" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta charset="UTF-8"/>
+	<meta http-equiv="X-UA-Compatible" content="chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>GW2 Item Search</title>
+	<style>
+		body { font-size:14px; line-height:1.4em; font-family:"Trebuchet MS",sans-serif; color:#000; min-width: 1000px;}
+		a { text-decoration:none; cursor:pointer; }
+		a:hover { text-decoration: underline; }
+		input, textarea, select { font-family: Consolas, "Liberation Mono", Courier, monospace; border:1px solid #aaa; }
+		input:focus, textarea:focus, select:focus { border:1px solid #ccc; }
+		footer { text-align:center; font-size:75%; line-height:1.2em; margin-top:2em; }
+
+		/* css-tables */
+		.table-row { display:table; width:100%; }
+		.table-cell { display:table-cell; overflow:hidden; vertical-align:top; width:auto; padding:0.25em; }
+
+		/* search form */
+		#gw2_search { text-align:center; }
+		#search { font-family:"Trebuchet MS",sans-serif; font-size:200%; width:20em; }
+
+		/* result list */
+		#results { text-align:left; margin-top:1em; }
+		#resultlist { width:500px; overflow-x:auto;}
+		#resultlist > div { white-space:pre; cursor:pointer; }
+		#resultlist > div:hover { background-color:rgba(0,0,0,0.1); }
+		#details { padding-left:0.5em; }
+		.highlight { color:red; background-color:rgba(0,0,0,0.2);}
+		.selected { background-color:rgba(0,0,0,0.1); }
+		.selectable { width:35em; }
+		#indicator { vertical-align:bottom; margin-left:0.5em; }
+		.redlink { color: #ba0000; }
+		.redlink:visited { color: #a55858; }
+		.bluelink { color: #0645ad; }
+		.bluelink:visited { color: #0b0080; }
+
+		/* pagination-links */
+		.p-links-container { line-height:1.25em; text-align:center; margin:1em 0; }
+		.p-links-container > a { text-decoration:none; }
+		.p-links { text-transform:uppercase; background-color:inherit; border: 1px solid #ccc; padding:1px 7px; margin:0 1px; }
+		.p-links:hover, .p-links:active { background-color:rgba(0,0,0,0.1); cursor:pointer; }
+		.p-prevnext { }
+		.p-middle { }
+		.p-current { background-color:rgba(0,0,0,0.2); }
+		.p-current:hover { cursor:default; }
+		.p-inactive { }
+		.p-inactive:hover { cursor:default; }
+
+		/* rarity colors */
+		.junk { color: #808080; }
+		.basic { color: #000000; }
+		.fine { color: #4f9dfe; }
+		.masterwork { color: #2dc50e; }
+		.rare { color: #f4c900; }
+		.exotic { color: #fda500; }
+		.ascended { color: #fb3e8d; }
+		.legendary { color: #800080; }
+	</style>
+	<!--[if lte IE 9]>
+	<style type="text/css">
+		.chromeFrameOverlayUnderlay{ background-color:#000; -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)"; filter:alpha(opacity=50); }
+		.chromeFrameOverlayContent{ width:800px; }
+	</style>
+	<![endif]-->
+</head>
+<body>
+<form id="gw2_search">
+	<input id="search" name="search" type="search" placeholder="item search (name/id)" /><br />
+	<span>
+		<img src="icons/de.png"><input class="options" type="radio" name="lang" value="de" checked="checked" />
+		<img src="icons/en.png"><input class="options" type="radio" name="lang" value="en" />
+		<img src="icons/es.png"><input class="options" type="radio" name="lang" value="es" />
+		<img src="icons/fr.png"><input class="options" type="radio" name="lang" value="fr" />
+	</span>
+	<div>
+		Level: <input class="options" name="min-level" type="number" min="0" max="80" value="" placeholder="0" /> - <input class="options" name="max-level" type="number" min="0" max="80" value="" placeholder="80" />
+		<select class="options" id="type" name="type">
+			<option value="">-- type --</option>
+			<option value="Armor">Armor</option>
+			<option value="Back">Back</option>
+			<option value="Bag">Bag</option>
+			<option value="Consumable">Consumable</option>
+			<option value="Container">Container</option>
+			<option value="CraftingMaterial">CraftingMaterial</option>
+			<option value="Gathering">Gathering</option>
+			<option value="Gizmo">Gizmo</option>
+			<option value="MiniPet">MiniPet</option>
+			<option value="Tool">Tool</option>
+			<option value="Trinket">Trinket</option>
+			<option value="Trophy">Trophy</option>
+			<option value="UpgradeComponent">UpgradeComponent</option>
+			<option value="Weapon">Weapon</option>
+		</select>
+		<select class="options" id="subtype" name="subtype">
+			<option value="">-- subtype --</option>
+		</select>
+		<select class="options" id="weight" name="weight">
+			<option value="">-- weight --</option>
+			<option value="Clothing">Clothing</option>
+			<option value="Light">Light</option>
+			<option value="Medium">Medium</option>
+			<option value="Heavy">Heavy</option>
+			<option value="None">None</option>
+		</select>
+		<select class="options" name="rarity">
+			<option value="">-- rarity --</option>
+			<option value="Junk" class="junk">Junk</option>
+			<option value="Basic" class="basic">Basic</option>
+			<option value="Fine" class="fine">Fine</option>
+			<option value="Masterwork" class="masterwork">Masterwork</option>
+			<option value="Rare" class="rare">Rare</option>
+			<option value="Exotic" class="exotic">Exotic</option>
+			<option value="Ascended" class="ascended">Ascended</option>
+			<option value="Legendary" class="legendary">Legendary</option>
+		</select>
+		<select class="options" name="gametype">
+			<option value="">-- gametype --</option>
+			<option value="pve">PvE</option>
+			<option value="pvp">PvP</option>
+		</select>
+		<input class="options" type="checkbox" name="redlinks" value="true" /> Redlinks only
+	</div>
+</form>
+<div id="results"></div>
+<footer>
+	GW2 Item Search by <a target="_blank" href="http://wiki-de.guildwars2.com/wiki/Benutzer:Smiley">Smiley&trade;</a> (<a target="_blank" href="https://github.com/codemasher/gw2api-tools">GitHub repo</a>)<br />
+	hosted by <a target="_blank" href="http://wiki-de.guildwars2.com/wiki/Benutzer:Darthmaim">Darthmaim</a>
+</footer>
+<script src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
+<!--[if lte IE 9]>
+<script src="https://ajax.googleapis.com/ajax/libs/chrome-frame/1.0.3/CFInstall.min.js"></script>
+<script>window.attachEvent("onload",function(){CFInstall.check({mode:"overlay"});});</script>
+<![endif]-->
+<script>
+	var types = {
+		Armor: ["Boots", "Coat", "Gloves", "Helm", "HelmAquatic", "Leggings", "Shoulders"],
+		Back: [],
+		Bag: [],
+		Consumable: ["AppearanceChange", "Booze", "ContractNpc", "Food", "Generic", "Halloween", "Immediate", "Transmutation", "Unknown", "Unlock", "Utility"],
+		Container: ["Default", "GiftBox"],
+		CraftingMaterial: [],
+		Gathering: ["Foraging", "Logging", "Mining"],
+		Gizmo:["Default", "RentableContractNpc", "UnlimitedConsumable"],
+		MiniPet: [],
+		Tool: ["Salvage"],
+		Trinket: ["Accessory", "Amulet", "Ring"],
+		Trophy: [],
+		UpgradeComponent: ["Default", "Gem", "Rune", "Sigil"],
+		Weapon: ["Axe", "Dagger", "Focus", "Greatsword", "Hammer", "Harpoon", "LargeBundle", "LongBow", "Mace", "Pistol", "Rifle", "Scepter", "Shield", "ShortBow", "Speargun", "Staff", "Sword", "Torch", "Toy", "Trident", "TwoHandedToy", "Warhorn"]
+	};
+
+	$("gw2_search").observe("submit", function(e){
+		Event.stop(e);
+		itemSearch(1);
+	});
+
+	$("search").observe("keyup", function(){
+		itemSearch(1);
+	});
+
+	$("type").observe("change", function(){
+		$("subtype").update(new Element("option", {"value":""}).update("-- subtype --"));
+		types[this.value].each(function(t){
+			$("subtype").insert(new Element("option", {"value":t}).update(t));
+		});
+	});
+
+	$$(".options").invoke("observe", "change", function(){
+		itemSearch(1);
+	});
+
+	function itemSearch(page){
+		new Ajax.Request("gw2itemsearch.php",{
+			method:"post",
+			// base64_encode the search string to not break umlauts, accented chars etc.
+			parameters:{search:Object.toJSON({str:base64_encode($F("search")), form:$("gw2_search").serialize(true), p:page, id:($$("#resultlist > .selected")[0] ? $$("#resultlist > .selected")[0].dataset.id : null)})},
+			onSuccess:function(r){
+				$("results").update(r.responseText);
+				observeResults();
+			}
+		});
+	}
+
+	function observeResults(){
+		$$(".p-links").invoke("stopObserving").invoke("observe","click", function(e){
+			Event.stop(e);
+			itemSearch(this.dataset.page);
+		});
+		$("resultlist").childElements().invoke("stopObserving").invoke("observe", "click", function(){
+			$$("#resultlist > .selected").invoke("removeClassName", "selected");
+			this.addClassName("selected");
+			getDetails(this.dataset.id);
+		});
+	}
+
+	function getDetails(item_id){
+		new Ajax.Request("gw2itemsearch.php",{
+			parameters:{details:Object.toJSON({id:item_id, lang:$$("input[name=lang]:checked")[0].value})},
+			onSuccess: function(r){
+				$("details").update(r.responseText);
+				$$(".selectable").invoke("stopObserving").invoke("observe", "click", function(){
+					this.select();
+				});
+				$("refresh").stopObserving().observe("click", function(e){
+					Event.stop(e);
+					new Ajax.Request("gw2itemsearch.php",{
+						parameters:{refresh:this.dataset.id},
+						onLoading: function(){
+							$("msg").update();
+							if(!$("indicator")){
+								$("refresh").insert({after: new Element("img", {"id":"indicator","src":"icons/spinner.gif"})});
+							}
+							else{
+								$("indicator").src = "icons/spinner.gif";
+							}
+						},
+						onSuccess: function(re){
+							if(re.responseJSON.success){
+								$("indicator").src = "icons/tick.png";
+							}
+							else if(re.responseJSON.error){
+								$("indicator").src = "icons/cross.png";
+							}
+							$("msg").update(re.responseJSON.message);
+							getDetails.delay(2, item_id);
+						}
+					});
+				});
+			}
+		});
+	}
+
+	function base64_encode(data){
+		// http://phpjs.org/functions/base64_encode/
+		// http://kevin.vanzonneveld.net
+		// +   original by: Tyler Akins (http://rumkin.com)
+		// +   improved by: Bayron Guevara
+		// +   improved by: Thunder.m
+		// +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +   bugfixed by: Pellentesque Malesuada
+		// +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +   improved by: Rafał Kukawski (http://kukawski.pl)
+		// *     example 1: base64_encode('Kevin van Zonneveld');
+		// *     returns 1: 'S2V2aW4gdmFuIFpvbm5ldmVsZA=='
+		// mozilla has this native
+		// - but breaks in 2.0.0.12!
+		//if (typeof this.window['btoa'] === 'function') {
+		//    return btoa(data);
+		//}
+		var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+			o1, o2, o3, h1, h2, h3, h4, bits, i = 0, ac = 0, enc, tmp_arr = [];
+		if(!data){return data;}
+		do{ // pack three octets into four hexets
+			o1 = data.charCodeAt(i++);
+			o2 = data.charCodeAt(i++);
+			o3 = data.charCodeAt(i++);
+			bits = o1 << 16|o2 << 8|o3;
+			h1 = bits >> 18&0x3f;
+			h2 = bits >> 12&0x3f;
+			h3 = bits >> 6&0x3f;
+			h4 = bits&0x3f;
+			// use hexets to index into b64, and append result to encoded string
+			tmp_arr[ac++] = b64.charAt(h1)+b64.charAt(h2)+b64.charAt(h3)+b64.charAt(h4);
+		}
+		while(i < data.length);
+		enc = tmp_arr.join('');
+		var r = data.length%3;
+		return (r ? enc.slice(0, r-3) : enc)+'==='.slice(r || 3);
+	}
+</script>
+</body>
+</html>
