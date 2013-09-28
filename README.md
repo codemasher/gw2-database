@@ -1,5 +1,5 @@
 #gw2-database
-An approach to create and mainatain GW2 related databases from the GW2 API. The main reason behind this is to bot-edit the wikis, also copy/paste creation of articles and maintain interwikis as comfortable as possible.
+An approach to create and maintain GW2 related databases from the GW2 API. The main reason behind this is to bot-edit the wikis, also copy/paste creation of articles and maintain interwikis as comfortable as possible.
 Of course these databases could be used for any other stuff - feel free to grab them and unleash your ideas ;)
 
 ## Requirements
@@ -11,6 +11,9 @@ XAMPP is great and easy to install but i prefer to create my own AMP mix with th
 
 ##Thanks
 - [Darthmaim](http://wiki-de.guildwars2.com/wiki/Benutzer:Darthmaim) for [hosting](http://gw2wbot.darthmaim.de/smiley/) and co-developing
+
+##Disclaimer!
+Some of these files are currently a total mess, especially the wikicode related, beause wikicode is a mess too! I don't take responsibility for molten CPUs, smashed keyboards, broken screens etc. Use at your own risk! ;)
 
 ##License
 This work is available under the [WTFPL](http://www.wtfpl.net/about/).
