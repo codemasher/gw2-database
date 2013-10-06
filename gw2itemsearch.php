@@ -42,9 +42,21 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	// build the WHERE clause for the SQL statement and add the corresponding values to an array
 	$values = array();
 
-	// if the search string is integer, use the id column else the item name (is_int() doesn't work here!)
-	$where = check_int($str) ? '`id` LIKE ?' : 'LOWER(`'.$col.'`) LIKE ?';
-	$values[] = '%'.(check_int($str) ? intval($str) : mb_strtolower($str)).'%';
+	// determine search mode: id, id-range, string (is_int() doesn't work here!)
+	$range = explode('-',$str);
+	if(check_int($str)){
+		$where = '`id` LIKE ?';
+		$values[] = '%'.intval($str).'%';
+	}
+	else if(preg_match("/\d+-\d+/", $str) && is_array($range) && count($range) === 2 && check_int(trim($range[0])) && check_int(trim($range[1]))){
+		$where = '`id` >= ? AND `id` <= ?';
+		$values[] = min(intval(trim($range[0])),intval(trim($range[1])));
+		$values[] = max(intval(trim($range[0])),intval(trim($range[1])));
+	}
+	else{
+		$where = 'LOWER(`'.$col.'`) LIKE ?';
+		$values[] = '%'. mb_strtolower($str).'%';
+	}
 
 
 //TODO: if mode = items...
@@ -106,7 +118,7 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	$sql_start = (empty($pagination['pages']) || !isset($pagination['pages'][$page])) ? 0 : $pagination['pages'][$page];
 
 	// get the item result
-	$result = sql_query('SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.' ORDER BY `gw2_items`.`'.(check_int($str) ? 'id' : $col).'` LIMIT '.$sql_start.', '.$limit, $values);
+	$result = sql_query('SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.' ORDER BY `gw2_items`.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.$sql_start.', '.$limit, $values);
 
 	// process the result
 	$list = '';
@@ -460,7 +472,7 @@ function get_item_details($id, $lng){
 
 		<img src="icons/'.$lng.'.png"> wikicode (experimental)'.(is_array($recipes[0]) && count($recipes[0]) > 0 ? ' (<a href="https://api.guildwars2.com/v1/recipe_details.json?recipe_id='.$recipes[0]['recipe_id'].'" target="_blank">API/recipe</a>)' : '').'<br />
 		<input type="text" readonly="readonly" value="#'.$redirect[$lng].' [['.str_replace($fixes[$lng], '', $d['name_'.$lng]).']]" class="selectable" /><br />
-		<textarea cols="20" readonly="readonly" class="selectable" rows="10">'.$wikicode[$lng].$interwiki[$lng].'</textarea><br />
+		<textarea cols="20" readonly="readonly" class="" style="width:35em;" rows="10">'.$wikicode[$lng].$interwiki[$lng].'</textarea><br />
 ';
 	}
 	else {
