@@ -4,7 +4,7 @@
  * created: 06.09.13
  */
 
-@error_reporting(0);
+@error_reporting(E_ALL); // change to 0 for production environments
 
 require_once 'inc/mysqli.inc.php';
 require_once 'inc/variables.inc.php';
@@ -108,7 +108,7 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	}
 
 	// first count the results to create the pagination
-	$count = sql_query('SELECT COUNT(*) FROM `gw2_items` WHERE '.$where, $values, false);
+	$count = sql_prepared_query('SELECT COUNT(*) FROM `gw2_items` WHERE '.$where, $values, false);
 
 	// items per page limit
 	$limit = 40;
@@ -118,7 +118,7 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	$sql_start = (empty($pagination['pages']) || !isset($pagination['pages'][$page])) ? 0 : $pagination['pages'][$page];
 
 	// get the item result
-	$result = sql_query('SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.' ORDER BY `gw2_items`.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.$sql_start.', '.$limit, $values);
+	$result = sql_prepared_query('SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.' ORDER BY `gw2_items`.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.$sql_start.', '.$limit, $values);
 
 	// process the result
 	$list = '';
@@ -127,7 +127,7 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 			// TODO: improve text highlighting
 			$list .= '<div data-id="'.$row['id'].'" class="'.strtolower($row['rarity']).' '.(isset($data['id']) && intval($data['id']) === $row['id'] ? 'selected' : '').'">';
 			if(mb_strlen($str) > 0){
-				if(check_int($str)){
+				if(check_int($str) || preg_match("/\d+-\d+/", $str)){
 					$list .= preg_replace('/('.$str.')/U', '<span class="highlight">$1</span>', $row['id']).': ';
 				}
 				$list .= mb_eregi_replace('('.$str.')', '<span class="highlight">\\1</span>', $row[$col]);
@@ -237,7 +237,7 @@ else if(isset($_POST['refresh']) && !empty($_POST['refresh'])){
 				intval($data_en['item_id'])
 			);
 
-			if(sql_query($sql, $values)){
+			if(sql_prepared_query($sql, $values)){
 				$response['success'] = true;
 				$response['message'] = 'everything fine.';
 			}
@@ -284,25 +284,22 @@ else{
  * @return string
  */
 function get_item_details($id, $lng){
-	global $weapon_types, $fixes;
+	global $weapon_types, $fixes, $disciplines;
 	$lng = in_array($lng, array('de','en','es','fr')) ? $lng : 'de';
 	$n = "\n";
-	$details = sql_query('SELECT * FROM `gw2_items` WHERE `id` = ?', array($id));
+	$details = sql_prepared_query('SELECT * FROM `gw2_items` WHERE `id` = ?', array($id));
 
 	if(is_array($details) && count($details) > 0){
 		// SELECT COUNT(*) AS `count`, `type`, `subtype` FROM `gw2_items` GROUP BY `type`, `subtype` ORDER BY `type` LIMIT 0, 100
 		$d = $details[0];
 
 		// ingredient check
-		$ingredient = sql_query('SELECT * FROM `gw2_recipes` WHERE `ing_id_1` = ? OR `ing_id_2` = ? OR `ing_id_3` = ? OR `ing_id_4` = ?', array($d['id'], $d['id'], $d['id'], $d['id']));
+		$ingredient = sql_prepared_query('SELECT * FROM `gw2_recipes` WHERE `ing_id_1` = ? OR `ing_id_2` = ? OR `ing_id_3` = ? OR `ing_id_4` = ?', array($d['id'], $d['id'], $d['id'], $d['id']));
 
 		// recipe lookup
-		$recipes = sql_query('SELECT * FROM `gw2_recipes` WHERE `output_id` = ?', array($id));
+		$recipes = sql_prepared_query('SELECT * FROM `gw2_recipes` WHERE `output_id` = ?', array($id));
 
 		// overall fixes
-		// Names in french recipe items contain an unnessecary space
-		$d['name_fr'] = str_replace('Recette :', 'Recette:', $d['name_fr']);
-
 
 		// API response JSON
 		$d['data_de'] = json_decode($d['data_de'],1);
@@ -334,9 +331,16 @@ function get_item_details($id, $lng){
 			'fr' => ''
 		);
 
-#		if($d['type'] === 'Armor'){
-#			$wikicode['de'] = '';
-#		}
+		if($d['type'] === 'Armor'){
+			$parts = array('Maske','Epauletten','Doublet','Handgelenkschutz','Stiefelhose','Schuhwerk','Antlitz','Schulterschützer','Deckmantel','Greifer','Beinkleid','Schreiter','Visier','Schulterschutz','Brustplatte','Kriegsfäuste','Beintaschen','Beinschienen');
+			$a_name = str_replace($parts, '', $d['name_de']);
+			$icon = 'Aufgestiegene Leichte Stiefel';
+			$wikicode['de'] =
+				wiki_infobox_armor_de($d, array('icon' => $icon.' Icon.png', 'aussehen' => $a_name.'Rüstung (Leicht)')).$n.
+				'==Beschaffung=='.$n.'* {{Gegenstand Icon|'.$a_name.'Rüstungskiste}}'.$n.$n.
+				(is_array($recipes) && count($recipes) > 0 ? '== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d) : '').$n.
+				'{{Navigationsleiste '.$a_name.'Rüstung}}'.$n;
+		}
 #		else
 #		if($d['type'] === 'Back'){
 #			$wikicode['de'] =
@@ -344,8 +348,7 @@ function get_item_details($id, $lng){
 #				((!empty($d['desc_de'])) ? $n.'{{Zitat|'.strip_tags($d['desc_de']).'}}' : '');
 #				((is_array($recipes) && count($recipes) > 0) ? $n.print_r($recipes,1) : ''); // not really working yet - MF recipes not in the API
 #		}
-#		else
-		if($d['type'] === 'Bag'){
+		else if($d['type'] === 'Bag'){
 			$wikicode['de'] =
 				wiki_infobox_item_de($d, 'Tasche', array('stapelbar' => 'nein', 'plätze' => preg_replace("/[^\d]+/s", '', $d['desc_de']))).$n.
 				(is_array($recipes) && count($recipes) > 0 ? '== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d) : '==Beschaffung=='.$n);
@@ -361,7 +364,7 @@ function get_item_details($id, $lng){
 			if(isset($d['data_de']['consumable']['unlock_type']) && $d['data_de']['consumable']['unlock_type'] === 'CraftingRecipe'){
 				$params = array(
 					'icon' => 'Rezept '.($d['rarity'] === 'Ascended' ? 'Aufgestiegen ' : '').'Icon.png',
-					'preis' => '',
+#					'preis' => '',
 				);
 				$wikicode['de'] .=
 					wiki_infobox_item_de($d, 'Rezept', $params).$n.
@@ -382,17 +385,30 @@ function get_item_details($id, $lng){
 		}
 		else if($d['type'] === 'Container'){
 			$wikicode['de'] =
-				wiki_infobox_item_de($d, 'Behälter', array()).$n.
+				wiki_infobox_item_de($d, 'Behälter', array()).$n.'==Inhalt=='.$n.'* '.$n.$n.
 				(is_array($recipes) && count($recipes) > 0 ? '== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d) : '==Beschaffung=='.$n);
 
 		}
 
 		else if($d['type'] === 'CraftingMaterial'){
 
-			$wikicode['de'] =
-				wiki_infobox_item_de($d, '', array()).$n.
-				(is_array($recipes) && count($recipes) > 0 ? '== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d) : '==Beschaffung=='.$n);
+			$prof = '';
+			$rate = '';
 
+			foreach($disciplines['en'] as $dis){
+				if(get_bitflag(constant($dis), $recipes[0]['disciplines'])){
+					$prof = str_replace($disciplines['en'], $disciplines['de'], $dis);
+					$rate = $recipes[0]['rating'];
+				}
+			}
+
+
+			$wikicode['de'] =
+				wiki_infobox_item_de($d, 'Komponente', array(mb_strtolower($prof) => $rate)).$n.
+				'==Beschaffung=='.$n.'Ein \'\'\''.$d['name_de'].'\'\'\' kann von einem [['.$prof.']] hergestellt werden.'.$n.
+				(is_array($recipes) && count($recipes) > 0 ? $n.'== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d, array()) : '');
+
+			$wikicode['de'].= $n.'== Zutat für =='.$n.'{{Rezeptliste|zutat={{PAGENAME}}}}'.$n;
 
 		}
 
