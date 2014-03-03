@@ -20,30 +20,32 @@ $n = "\n";
 // first of all refresh the item IDs
 $data = gw2_api_request('items.json');
 if(is_array($data) && isset($data['items'])){
-	echo count($data['items']).' items in items.json.'.$n;
-	if($stmt = mysqli_prepare($db, 'INSERT IGNORE INTO `gw2_items` (`id`) VALUES (?)')){
-		mysqli_stmt_bind_param($stmt, 'i', $id);
-		foreach($data['items'] as $item){
-			$id = $item;
-			mysqli_stmt_execute($stmt);
-		}
-		mysqli_stmt_close($stmt);
-		echo 'refresh done.'.$n;
+	$values = array();
+	$time = time();
+	foreach($data['items'] as $item){
+		$values[] = array($item, $time);
 	}
+	sql_multi_row_insert('INSERT IGNORE INTO `gw2_items` (`id`, `date_added`) VALUES (?, ?)', $values, 'ii');
+	echo 'refresh done.'.$n.count($data['items']).' items in items.json.'.$n;
 }
 
 // ok, now the nasty part - you may want to set `updated` to 0 before a full update
+#sql_query('UPDATE `gw2_items` SET `updated` = 0');
+
 $q = sql_query('SELECT `id` FROM `gw2_items` WHERE `updated` = 0 ORDER BY `gw2_items`.`id`');
 if(is_array($q) && count($q) > 0){
 	$err = array();
-	$sql = 'UPDATE `gw2_items` SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?, `subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr1` = ?, `attr2` = ?, `attr3` = ?, `unlock_id` = ?, `name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `desc_de` = ?, `desc_en` = ?, `desc_es` = ?, `desc_fr` = ?,	`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
+	$sql = 'UPDATE `gw2_items` SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?, `subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr1` = ?, `attr2` = ?, `attr3` = ?, `unlock_id` = ?, `name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `desc_de` = ?, `desc_en` = ?, `desc_es` = ?, `desc_fr` = ?, `data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
+
+	// i don't use the multiline insert over here as it would blow up the system memory
+	// also this way we insert each line as soon as we get the data from the API
 	if($stmt = mysqli_prepare($db, $sql)){
 		/** @noinspection PhpUndefinedVariableInspection */
 		mysqli_stmt_bind_param($stmt, 'sisssssiiisssissssssssssssiii', $signature, $file_id, $rarity, $weight, $type, $subtype, $unlock_type, $level, $value, $pvp, $attr1, $attr2, $attr3, $unlock, $name_de, $name_en, $name_es, $name_fr, $desc_de, $desc_en, $desc_es, $desc_fr, $json_de, $json_en, $json_es, $json_fr, $updated, $update_time, $item_id);
 		foreach($q as $i){
 			$starttime = microtime(true);
 			$data_de = gw2_api_request('item_details.json?item_id='.$i['id'].'&lang=de');
-			$data_en = gw2_api_request('item_details.json?item_id='.$i['id']);
+			$data_en = gw2_api_request('item_details.json?item_id='.$i['id'].'&lang=en');
 			$data_es = gw2_api_request('item_details.json?item_id='.$i['id'].'&lang=es');
 			$data_fr = gw2_api_request('item_details.json?item_id='.$i['id'].'&lang=fr');
 
@@ -92,7 +94,7 @@ if(is_array($q) && count($q) > 0){
 
 				$item_id = $i['id'];
 				mysqli_stmt_execute($stmt);
-				echo 'updated id: '.$i['id'].' - '.$data_en['name'].' ('.round((microtime(true) - $starttime),3).'s)'.$n; // character encoding sucks -.-
+				echo 'updated id: '.$i['id'].' - '.$data_en['name'].' ('.round((microtime(true) - $starttime),3).'s)'.$n;
 			}
 			else{
 				$err[] = $i['id'];
