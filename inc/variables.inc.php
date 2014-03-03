@@ -47,13 +47,22 @@ $attributes = array(
 // pre/suffix strings (used to strip from the names to create redirect links if needed etc.) - experimental
 $fixes = array(
 	'de' => array('Grausame ', 'Grausamer ', 'Grausames ', 'Himmlische ','Himmlischer ','Himmlisches ', ' der Fäulnis', ' der Walküre', ' des Arzneikundlers', ' des Assassinen', ' des Berserkers', ' des Explorators',
-				  ' des Klerikers', ' des Ritters', ' des Wüters', ' des Schildwächters', ' des Spenders', ' der Magi', ' des Kavaliers', ' des Schamanen', ' des Siedlers', ' des Soldaten', 'Tollwütige ', 'Tollwütiger ', 'Tollwütiges ',
-				  ' des Jägers', 'Energische ', 'Energischer ', 'Energisches ', 'Plündernde ', 'Plündernder ', 'Plünderndes ', 'Starke ', 'Starker ', 'Starkes ', 'Veredelte ', 'Veredelter ', 'Veredeltes ',
-				  'Verjüngende ', 'Verjüngender ', 'Verjüngendes ', 'Verwüstende ', 'Verwüstender ', 'Verwüstendes ', 'Wackere ', 'Wackerer ', 'Wackeres ', ' der Intelligenz', ' der Präzision', ' des Blutes', ' der Rage' ),
+					' des Klerikers', ' des Ritters', ' des Wüters', ' des Schildwächters', ' des Spenders', ' der Magi', ' des Kavaliers', ' des Schamanen', ' des Siedlers', ' des Soldaten', 'Tollwütige ', 'Tollwütiger ', 'Tollwütiges ',
+					' des Jägers', 'Energische ', 'Energischer ', 'Energisches ', 'Plündernde ', 'Plündernder ', 'Plünderndes ', 'Starke ', 'Starker ', 'Starkes ', 'Veredelte ', 'Veredelter ', 'Veredeltes ',
+					'Verjüngende ', 'Verjüngender ', 'Verjüngendes ', 'Verwüstende ', 'Verwüstender ', 'Verwüstendes ', 'Wackere ', 'Wackerer ', 'Wackeres ', ' der Intelligenz', ' der Präzision', ' des Blutes', ' der Rage',
+					' des Reisenden', 'Faulverstärkte ', 'Faulverstärkter ', 'Faulverstärktes ', ' des Wanderers', ' der Nacht', ' des Wassers', ' des Kampfes', ' der Verdorbenheit', ' der Energie', ' der Luft',
+					' des Geomanten', ' der Erde', ' der Qual', ' der Blutgier', ' der Ogervernichtung', 'Durchdringende ', 'Durchdringender ', 'Durchdringendes ', 'Genesende ', 'Genesender ', 'Genesendes ',
+					' der Heftigkeit', ' der Träume', 'Unheilvolle ', 'Unheilvoller ', 'Unheilvolles ', ' der Grawlvernichtung', ' der Schlangenvernichtung', ' der Glut', ' der Schwäche', ' des Hydromanten',
+					'Heilende ', 'Heilender ', 'Heilendes ', ' der Genesung', ' des Humpelns', ' der Auslöschung', ' der Ausdauer', ' des Lebensfressers', ' der Wahrnehmung', ' des Feuers', ' der Dämonenbeschwörung', ' der Gefahr',
+					' der Reinheit', ' des Eises', ' der Kühle', ' des Lebens'),//, ''
+
 	'en' => array('Apothecary\'s ', 'Assassin\'s ', 'Berserker\'s ', 'Carrion ', 'Celestial ', 'Cleric\'s ', 'Giver\'s ', 'Knight\'s ', 'Rampager\'s ', 'Sentinel\'s ', 'Valkyrie ',
-				  'Cavalier\'s ', 'Dire ', 'Magi\'s ', 'Rabid ', 'Settler\'s ', 'Shaman\'s ', 'Soldier\'s '),
+				  'Cavalier\'s ', 'Dire ', 'Magi\'s ', 'Rabid ', 'Settler\'s ', 'Shaman\'s ', 'Soldier\'s ', ' of Rage', ' of Intelligence', ' of Accuracy ', ' of Blood', ' of Energy', ' of Air', ' of Corruption', '',
+				  ' of Water', ' of Dreams', 'Explorer\'s ', ' of Force', 'Hunter\'s ', 'Rejuvenating ', 'Vigorous ', 'Hearty ', 'Honed '),
 	'es' => array(' celestial'),
-	'fr' => array(' céleste')
+	'fr' => array(' céleste', ' sanguinaire', ' de sang', ' de rage', ' nécrophage', ' de corruption', ' d\'eau', 'd\'exactitude', ' d\'intelligence', ' d\'air', ' d\'énergie', ' de soldat', ' enragé', ' de chamane',
+					' de rêves', ' de mage', ' de cavalier', ' d\'assassin', ' de berserker', ' de chevalier', ' d\'explorateur', ' de bienfaiteur', ' de valkyrie', ' d\'apothicaire', ' de maraudeur', ' de fermeté',
+					' de chasseur', ' de jouvence', ' vigoureux', ' vigoureuse', ' de vigueur', ' robuste', ' aiguisé')
 );
 
 $weapon_types = array(
@@ -61,7 +70,7 @@ $weapon_types = array(
 	'de' => array('Axt', 'Dolch', 'Fokus', 'Großschwert', 'Hammer', 'Speer', 'Bündel', 'Langbogen', 'Streitkolben', 'Pistole', 'Gewehr', 'Zepter', 'Schild', 'Kurzbogen', 'Harpunenschleuder', 'Stab', 'Schwert', 'Fackel', 'Spielzeug', 'Dreizack', 'Zweihändiges Spielzeug', 'Kriegshorn'),
 	'en' => array('Axe', 'Dagger', 'Focus', 'Greatsword', 'Hammer', 'Harpoon', 'Large bundle', 'Longbow', 'Mace', 'Pistol', 'Rifle', 'Scepter', 'Shield', 'Shortbow', 'Speargun', 'Staff', 'Sword', 'Torch', 'Toy', 'Trident', 'Two handed toy', 'Warhorn'),
 	'es' => array('---'),
-	'fr' => array('---')
+	'fr' => array('Hache','Dague','Focus','Espadon','Marteau','Lance','-','Arc long','Masse','Pistolet','Fusil','Sceptre','Bouclier','Arc court','Fusil-harpon','Bâton','Épée','Torche','-','Trident','-','Cor de guerre')
 );
 
 $infusions = array(
@@ -70,6 +79,22 @@ $infusions = array(
 	'en' => array('Defense','Offense','Utility'),
 	'es' => array('Defense','Offense','Utility'),
 	'fr' => array('Defense','Offense','Utility')
+);
+
+$armor_weight = array(
+	'api' => array('Clothing','Light','Medium','Heavy'),
+	'de' => array('Stadtkleidung','leicht','mittel','schwer'),
+	'en' => array('clothing','light','medium','heavy'),
+	'es' => array('-','-','-','-'),
+	'fr' => array('-','-','-','-')
+);
+
+$armor_pos = array(
+	'api' => array('Boots','Coat','Gloves','Helm','HelmAquatic','Leggings','Shoulders'),
+	'de' => array('fuß','brust','hand','kopf','atemgerät','bein','schulter'),
+	'en' => array('Boots','Coat','Gloves','Helm','HelmAquatic','Leggings','Shoulders'),
+	'es' => array('-','-','-','-','-','-','-'),
+	'fr' => array('-','-','-','-','-','-','-')
 );
 
 ?>
