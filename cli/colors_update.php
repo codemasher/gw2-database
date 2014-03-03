@@ -12,82 +12,73 @@ require_once '../inc/request.inc.php';
 
 $n = "\n";
 
-$data = gw2_api_request('colors.json');
+$starttime = microtime(true);
+$data = gw2_api_request('colors.json?lang=en');
 if(is_array($data) && isset($data['colors'])){
-	echo count($data['colors']).' items in colors.json.'.$n;
 	sql_query('TRUNCATE TABLE `gw2_colors`');
-	if($stmt = mysqli_prepare($db, 'INSERT IGNORE INTO `gw2_colors` (`color_id`, `name_en`, `cloth`, `leather`, `metal`) VALUES (?, ?, ?, ?, ?)')){
-		/** @noinspection PhpUndefinedVariableInspection */
-		mysqli_stmt_bind_param($stmt, 'issss', $color_id, $name_en, $cloth, $leather, $metal);
-		foreach($data['colors'] as $i => $c){
-			$color_id = $i;
-			$name_en = $c['name'];
-			$cloth = json_encode($c['cloth']);
-			$leather = json_encode($c['leather']);
-			$metal = json_encode($c['metal']);
-			mysqli_stmt_execute($stmt);
-			echo $i.' - '.$c['name'].$n;
-		}
-		mysqli_stmt_close($stmt);
-		echo 'refresh done.'.$n;
+	$values = array();
+	foreach($data['colors'] as $id => $color){
+		$values[] = array(
+			$id,
+			$color['name'],
+			json_encode($color['cloth']),
+			json_encode($color['leather']),
+			json_encode($color['metal'])
+		);
+		echo $id.' - '.$color['name'].$n;
 	}
+	sql_multi_row_insert('INSERT IGNORE INTO `gw2_colors` (`color_id`, `name_en`, `cloth`, `leather`, `metal`) VALUES (?, ?, ?, ?, ?)', $values, 'issss');
+	echo 'refresh done. ('.round((microtime(true) - $starttime),3).'s)'.$n.count($data['colors']).' items in colors.json.'.$n;
 }
 
 
 foreach(array('de','es','fr') as $lang){//'en',
+	$starttime = microtime(true);
 	$data = gw2_api_request('colors.json?lang='.$lang);
 	if(is_array($data) && isset($data['colors'])){
-		if($stmt = mysqli_prepare($db, 'UPDATE `gw2_colors` SET `name_'.$lang.'` = ? WHERE `color_id` = ?')){
-			/** @noinspection PhpUndefinedVariableInspection */
-			mysqli_stmt_bind_param($stmt, 'si', $name, $color_id);
-			foreach($data['colors'] as $i => $c){
-				$name = $c['name'];
-				$color_id = $i;
-				mysqli_stmt_execute($stmt);
-				echo $i.' - '.$c['name'].$n;
-			}
+		$values = array();
+		foreach($data['colors'] as $id => $color){
+			$values[] = array($color['name'], $id);
+			echo $id.' - '.$color['name'].$n;
 		}
-		mysqli_stmt_close($stmt);
-		echo $lang.' refresh done.'.$n;
+		sql_multi_row_insert('UPDATE `gw2_colors` SET `name_'.$lang.'` = ? WHERE `color_id` = ?', $values, 'si');
+		echo $lang.' refresh done. ('.round((microtime(true) - $starttime),3).'s)'.$n;
 	}
 }
 
 
-$q = sql_query('SELECT `id`, `unlock_id`, `file_id`, `rarity` FROM `gw2_items` WHERE `unlock_type` = \'Dye\'');
+$q = sql_prepared_query('SELECT `id`, `unlock_id`, `file_id`, `rarity` FROM `gw2_items` WHERE `unlock_type` = ?', array('Dye'));
 if(is_array($q)){
-	if($stmt = mysqli_prepare($db, 'UPDATE `gw2_colors` SET `item_id` = ?, `set` = ?, `icon` = ? WHERE `color_id` = ?')){
-		/** @noinspection PhpUndefinedVariableInspection */
-		mysqli_stmt_bind_param($stmt, 'issi', $item_id, $set, $icon, $color_id);
-		foreach($q as $r){
-
-			// 'starter','common','uncommon','rare','special','none'
-			switch($r['rarity']){
-				case 'Fine': $s = 'common'; break;
-				case 'Rare': $s = 'uncommon'; break;
-				case 'Masterwork': $s = 'rare'; break;
-				default: $s = 'none'; break;
-			}
-
-			//'fine-left','fine-right','masterwork-left','masterwork-right','rare-left','rare-right','special','none'
-			switch(intval($r['file_id'])){
-				case 66649: $i = 'rare-left'; break;
-				case 66650: $i = 'rare-right'; break;
-				case 66651: $i = 'masterwork-left'; break;
-				case 66652: $i = 'fine-left'; break;
-				case 66653: $i = 'masterwork-right'; break;
-				case 66654: $i = 'fine-right'; break;
-				case 561734: $i = 'special'; $s = 'special'; break;
-				default: $i = 'none'; break;
-			}
-
-			$item_id = $r['id'];
-			$set = $s;
-			$icon = $i;
-			$color_id = $r['unlock_id'];
-			mysqli_stmt_execute($stmt);
+	$values = array();
+	foreach($q as $item){
+		// 'starter','common','uncommon','rare','special','none'
+		switch($item['rarity']){
+			case 'Fine': $set = 'common'; break;
+			case 'Rare': $set = 'uncommon'; break;
+			case 'Masterwork': $set = 'rare'; break;
+			default: $set = 'none'; break;
 		}
-		mysqli_stmt_close($stmt);
+
+		//'fine-left','fine-right','masterwork-left','masterwork-right','rare-left','rare-right','special','none'
+		switch((int)$item['file_id']){
+			case 66649: $icon = 'rare-left'; break;
+			case 66650: $icon = 'rare-right'; break;
+			case 66651: $icon = 'masterwork-left'; break;
+			case 66652: $icon = 'fine-left'; break;
+			case 66653: $icon = 'masterwork-right'; break;
+			case 66654: $icon = 'fine-right'; break;
+			case 561734: $icon = 'special'; $set = 'special'; break;
+			default: $icon = 'none'; break;
+		}
+
+		$values[] = array(
+			$item['id'],
+			$set,
+			$icon,
+			$item['unlock_id']
+		);
 	}
+	sql_multi_row_insert('UPDATE `gw2_colors` SET `item_id` = ?, `set` = ?, `icon` = ? WHERE `color_id` = ?', $values, 'issi');
 }
 
-?> 
+?>
