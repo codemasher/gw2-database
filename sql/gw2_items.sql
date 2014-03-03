@@ -37,5 +37,6 @@ CREATE TABLE IF NOT EXISTS `gw2_items` (
   `wiki_checked` tinyint(1) unsigned NOT NULL DEFAULT '0',
   `updated` tinyint(1) unsigned NOT NULL DEFAULT '0',
   `update_time` int(10) unsigned NOT NULL DEFAULT '0',
+  `date_added` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
