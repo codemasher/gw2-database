@@ -10,6 +10,35 @@
  * TODO
  */
 
+function wiki_infobox_armor_de($item, $params = array()){
+	global $armor_weight, $armor_pos, $attributes;
+	$n = "\n";
+
+	$infobox_armor =
+		'{{Infobox Rüstung'.$n.
+		'| rüstungsklasse = '.str_replace($armor_weight['api'], $armor_weight['de'], $item['weight']).$n.
+		'| position = '.str_replace($armor_pos['api'], $armor_pos['de'], $item['subtype']).$n.
+		(!empty($item['desc_de']) ? '| beschreibung = '.preg_replace('/('.implode('|',$attributes['de']).')/Uis','[[$1]]',strip_tags($item['desc_de'])).$n : '');
+
+
+	foreach($params as $k => $v){
+		$infobox_armor .= '| '.$k.' = '.$v.$n;
+	}
+
+
+	$infobox_armor .= '}}'.$n;
+
+	return $infobox_armor;
+}
+
+
+/**
+ * @param array  $item
+ * @param string $type
+ * @param array  $params
+ *
+ * @return string
+ */
 function wiki_infobox_item_de($item, $type = '', $params = array()){
 	global $rarity, $attributes;
 	$n = "\n";
@@ -19,8 +48,8 @@ function wiki_infobox_item_de($item, $type = '', $params = array()){
 		'| typ = '.$type.$n.
 		'| seltenheit = '.str_replace($rarity['en'], $rarity['de'], $item['rarity']).$n.
 		(intval($item['level']) > 0 ? '| stufe = '.$item['level'].$n : '').
-		(intval($item['value']) > 0 && !in_array('NoSell', $item['data_de']['flags']) ? '| händlerwert = {{Münzen|'.$item['value'].'}}'.$n : '').
-		(!empty($item['desc_de']) ? '| beschreibung = '.preg_replace('/('.implode('|',$attributes['en']).')/Uis','[[$1]]',strip_tags($item['desc_de'])).$n : '');
+		(intval($item['value']) > 0 && !in_array('NoSell', $item['data_de']['flags']) ? '| händlerwert = '.$item['value'].$n : '').
+		(!empty($item['desc_de']) ? '| beschreibung = '.preg_replace('/('.implode('|',$attributes['de']).')/Uis','[[$1]]',strip_tags($item['desc_de'])).$n : '');
 
 	switch(true){
 		case in_array(array('AccountBound','SoulBindOnUse'), $item['data_de']['flags']): $infobox_item .= '| gebunden = accbenutzung'.$n; break;
@@ -29,14 +58,11 @@ function wiki_infobox_item_de($item, $type = '', $params = array()){
 		case in_array('SoulBindOnUse', $item['data_de']['flags']) && !in_array('AccountBound', $item['data_de']['flags']): $infobox_item .= '| gebunden = benutzung'.$n; break;
 	}
 
-
 	foreach($params as $k => $v){
 		$infobox_item .= '| '.$k.' = '.$v.$n;
 	}
 
 	$infobox_item .= '}}'.$n;
-
-
 
 	return $infobox_item;
 }
@@ -58,17 +84,17 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 
 	// get the name of the recipe item if learned from item
 	if((bool)$recipe['from_item'] === true){
-		$unlock = sql_query('SELECT `name_de` FROM `gw2_items` WHERE `unlock_type` = \'CraftingRecipe\' AND `unlock_id` = ?', array($recipe['recipe_id']));
+		$unlock = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `unlock_type` = \'CraftingRecipe\' AND `unlock_id` = ?', array($recipe['recipe_id']));
 		$unlock = $unlock[0]['name_de'];
 	}
 	else{
-		$unlock = 'Automatisch';
+#		$unlock = 'Automatisch';
 		$unlock = 'Erforschung';
 	}
 
 	$recipe_box =
 		'{{Rezept'.$n.
-		'| name = '.$item['name_de'].($rarity_suffix === true ? ' ('.str_replace($rarity['en'], $rarity['de'], $item['rarity']).')' : '').$n.
+		'| name = '.$item['name_de'].($rarity_suffix === true ? ' ('.str_replace('werk','',str_replace($rarity['en'], $rarity['de'], $item['rarity'])).')' : '').$n.
 		'| id = '.(!empty($recipe['output_id']) ? $recipe['output_id'] : $item['id']).$n.
 		'| rezept-id = '.$recipe['recipe_id'].$n.
 		'| freischaltung = '.$unlock.$n;
@@ -118,7 +144,7 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 			$recipe_box .=
 				'| aufwertung = ';
 			if(!empty($item['data_de'][$t]['suffix_item_id'])){
-				$suffix_name = sql_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
+				$suffix_name = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
 				$recipe_box .= (is_array($suffix_name) && isset($suffix_name[0]['name_de']) ? $suffix_name[0]['name_de'] : '');
 			}
 			$recipe_box .= $n;
@@ -147,7 +173,7 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 	// parse ingredients
 	for($i=1; $i<5; $i++){
 		if(intval($recipe['ing_count_'.$i]) > 0){
-			$ing = sql_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($recipe['ing_id_'.$i]));
+			$ing = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($recipe['ing_id_'.$i]));
 			$recipe_box .=
 				'| material'.$i.' = '.$ing[0]['name_de'].$n.
 				($recipe['ing_count_'.$i] > 1 ? '| menge'.$i.' = '.$recipe['ing_count_'.$i].$n : '');
@@ -155,7 +181,7 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 	}
 
 	// add a flag if an item was removed - currently explorer type
-	if(strpos($item['name_de'], 'des Explorators') !== false || strpos($item['name_de'], ' des Wanderers') !== false || strpos($item['name_de'], 'Plündernd') !== false){
+	if(strpos($item['name_de'], 'des Explorators') !== false || strpos($item['name_de'], ' des Wanderers') !== false || strpos($item['name_de'], ' des Reisenden') !== false || strpos($item['name_de'], 'Plündernd') !== false){
 		$recipe_box .=
 			'| entfernt = ja'.$n;
 	}
@@ -188,6 +214,7 @@ function wiki_equip_de($item, $params = array()){
 	$n = "\n";
 	$equip_box =
 		'{{Ausrüstungswerte'.$n.
+		'| name = '.$item['name_de'].$n.
 		'| id = '.$item['id'].$n.
 		'| stufe = '.$item['level'].$n.
 		'| seltenheit = '.str_replace($rarity['en'], $rarity['de'], $item['rarity']).$n.
@@ -221,7 +248,7 @@ function wiki_equip_de($item, $params = array()){
 		$equip_box .=
 			'| aufwertung = ';
 		if(!empty($item['data_de'][$t]['suffix_item_id'])){
-			$suffix_name = sql_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
+			$suffix_name = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
 			$equip_box .= (is_array($suffix_name) && isset($suffix_name[0]['name_de']) ? $suffix_name[0]['name_de'] : '');
 		}
 		$equip_box .= $n;
@@ -247,7 +274,7 @@ function wiki_equip_de($item, $params = array()){
 	}
 
 	// add a flag if an item was removed - currently explorer type
-	if(strpos($item['name_de'], 'des Explorators') !== false || strpos($item['name_de'], ' des Wanderers') !== false || strpos($item['name_de'], 'Plündernd') !== false){
+	if(strpos($item['name_de'], 'des Explorators') !== false || strpos($item['name_de'], ' des Wanderers') !== false || strpos($item['name_de'], ' des Reisenden') !== false || strpos($item['name_de'], 'Plündernd') !== false){
 		$equip_box .=
 			'| entfernt = ja'.$n;
 	}
@@ -295,7 +322,7 @@ function wiki_recipe_fr($recipe, $name){
 
 	// get the name of the recipe item if learned from item
 	if((bool)$recipe['from_item'] === true){
-		$unlock = sql_query('SELECT `name_fr` FROM `gw2_items` WHERE `type` = \'Consumable\' AND `subtype` = \'Unlock\' AND `unlock_id` = ?', array($recipe['recipe_id']));
+		$unlock = sql_prepared_query('SELECT `name_fr` FROM `gw2_items` WHERE `type` = \'Consumable\' AND `subtype` = \'Unlock\' AND `unlock_id` = ?', array($recipe['recipe_id']));
 		$unlock = $unlock[0]['name_fr'];
 	}
 	else{
@@ -313,7 +340,7 @@ function wiki_recipe_fr($recipe, $name){
 
 	for($i=1; $i<5; $i++){
 		if(intval($recipe['ing_count_'.$i]) > 0){
-			$ing = sql_query('SELECT `name_fr` FROM `gw2_items` WHERE `id` = ?', array($recipe['ing_id_'.$i]));
+			$ing = sql_prepared_query('SELECT `name_fr` FROM `gw2_items` WHERE `id` = ?', array($recipe['ing_id_'.$i]));
 			$recipe_box .=
 				'| mat'.$i.' = '.$ing[0]['name_fr'].$n.
 				'| qté'.$i.' = '.$recipe['ing_count_'.$i].$n;
