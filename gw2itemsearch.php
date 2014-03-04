@@ -108,17 +108,20 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	}
 
 	// first count the results to create the pagination
-	$count = sql_prepared_query('SELECT COUNT(*) FROM `gw2_items` WHERE '.$where, $values, false);
+	$count = sql_prepared_query('SELECT COUNT(*) FROM `gw2_items` WHERE '.$where, $values, null, false);
 
 	// items per page limit
 	$limit = 40;
 
 	// create the pagination
 	$pagination = pagination($count[0][0], $page, $limit);
-	$sql_start = (empty($pagination['pages']) || !isset($pagination['pages'][$page])) ? 0 : $pagination['pages'][$page];
 
 	// get the item result
-	$result = sql_prepared_query('SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.' ORDER BY `gw2_items`.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.$sql_start.', '.$limit, $values);
+	$sql = 'SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.
+		' ORDER BY `gw2_items`.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.
+		(empty($pagination['pages']) || !isset($pagination['pages'][$page]) ? 0 : $pagination['pages'][$page]).', '.$limit;
+
+	$result = sql_prepared_query($sql, $values);
 
 	// process the result
 	$list = '';
@@ -160,7 +163,7 @@ else if(isset($_POST['refresh']) && !empty($_POST['refresh'])){
 	$response = array();
 	if(check_int($_POST['refresh'])){
 		$data_de = gw2_api_request('item_details.json?item_id='.$_POST['refresh'].'&lang=de');
-		$data_en = gw2_api_request('item_details.json?item_id='.$_POST['refresh']);
+		$data_en = gw2_api_request('item_details.json?item_id='.$_POST['refresh'].'&lang=en');
 		$data_es = gw2_api_request('item_details.json?item_id='.$_POST['refresh'].'&lang=es');
 		$data_fr = gw2_api_request('item_details.json?item_id='.$_POST['refresh'].'&lang=fr');
 
