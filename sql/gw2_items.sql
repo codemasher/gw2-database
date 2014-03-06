@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `gw2_items` (
   `attr1` tinytext COLLATE utf8_bin NOT NULL,
   `attr2` tinytext COLLATE utf8_bin NOT NULL,
   `attr3` tinytext COLLATE utf8_bin NOT NULL,
+  `attr_name` tinytext COLLATE utf8_bin NOT NULL,
   `unlock_id` MEDIUMINT(6) unsigned NOT NULL DEFAULT '0',
   `name_de` tinytext COLLATE utf8_bin NOT NULL,
   `name_en` tinytext COLLATE utf8_bin NOT NULL,
