@@ -44,6 +44,61 @@ $attributes = array(
 	'fr' => array('---')
 );
 
+// attribute combination map
+$attribute_map = array(
+	'single' => array(
+		'winter_1' =>     'BoonDuration',
+		'festering' =>    'ConditionDamage',
+		'givers_1' =>     'ConditionDuration',
+		'compassion' =>   'Healing',
+		'might' =>        'Power',
+		'precision' =>    'Precision',
+		'resilience' =>   'Toughness',
+		'vitality' =>     'Vitality',
+	),
+	'double' => array(
+		'ravaging' =>     array('ConditionDamage', 'Precision'),
+		'lingering' =>    array('ConditionDamage', 'Vitality'),
+		'givers_2w' =>    array('ConditionDuration', 'Vitality'), //weapon
+		'rejuvenation' => array('Healing', 'Power'),
+		'mending' =>      array('Healing', 'Vitality'),
+		'potency' =>      array('Power', 'ConditionDamage'),
+		'honing' =>       array('Power', 'CritDamage'),
+		'strength' =>     array('Power', 'Precision'),
+		'vigor' =>        array('Power', 'Vitality'),
+		'penetration' =>  array('Precision', 'CritDamage'),
+		'hunter' =>       array('Precision', 'Power'),
+		'enduring' =>     array('Toughness', 'ConditionDamage'),
+		'givers_2a ' =>   array('Toughness', 'Healing'), //armor
+		'hearty' =>       array('Vitality', 'Toughness'),
+		'stout' =>        array('Toughness', 'Precision'),
+		'winter_2' =>     array('Toughness', 'Healing'),
+	),
+	'triple' => array(
+		'carrion' =>      array('ConditionDamage', 'Power', 'Vitality'),
+		'rabid' =>        array('ConditionDamage', 'Precision', 'Toughness'),
+		'dire' =>         array('ConditionDamage', 'Toughness', 'Vitality'),
+		'givers_3w' =>    array('ConditionDuration', 'Precision', 'Vitality'), //weapon
+		'apothecary' =>   array('Healing', 'ConditionDamage', 'Toughness'),
+		'cleric' =>       array('Healing', 'Power', 'Toughness'),
+		'magi' =>         array('Healing', 'Precision', 'Vitality'),
+		'zealot' =>       array('Power', 'Healing', 'Precision'), //same stats as Keeper's
+		'berserker' =>    array('Power', 'Precision', 'CritDamage'),
+		'soldier' =>      array('Power', 'Toughness', 'Vitality'),
+		'valkyrie' =>     array('Power', 'Vitality', 'CritDamage'),
+		'rampager' =>     array('Precision', 'ConditionDamage', 'Power'),
+		'assassin' =>     array('Precision', 'Power', 'CritDamage'),
+		'knight_3s' =>    array('Precision', 'Power', 'Toughness'), //suffix
+		'settler' =>      array('Toughness', 'ConditionDamage', 'Healing'),
+		'givers_3a' =>    array('Toughness', 'Healing', 'BoonDuration'), //armor
+		'cavalier' =>     array('Toughness', 'Power', 'CritDamage'),
+		'knight_3p' =>    array('Toughness', 'Power', 'Precision'), //prefix
+		'shaman_3p' =>    array('Vitality', 'ConditionDamage', 'Healing'), //prefix
+		'sentinel' =>     array('Vitality', 'Power', 'Toughness'),
+		'shaman_3s' =>    array('Vitality', 'Healing', 'Power'), //suffix
+	),
+);
+
 // pre/suffix strings (used to strip from the names to create redirect links if needed etc.) - experimental
 $fixes = array(
 	'de' => array('Grausame ', 'Grausamer ', 'Grausames ', 'Himmlische ','Himmlischer ','Himmlisches ', ' der Fäulnis', ' der Walküre', ' des Arzneikundlers', ' des Assassinen', ' des Berserkers', ' des Explorators',
