@@ -84,7 +84,7 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 
 	// get the name of the recipe item if learned from item
 	if((bool)$recipe['from_item'] === true){
-		$unlock = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `unlock_type` = \'CraftingRecipe\' AND `unlock_id` = ?', array($recipe['recipe_id']));
+		$unlock = sql_prepared_query('SELECT `name_de` FROM '.TABLE_ITEMS.' WHERE `unlock_type` = \'CraftingRecipe\' AND `unlock_id` = ?', array($recipe['recipe_id']));
 		$unlock = $unlock[0]['name_de'];
 	}
 	else{
@@ -144,7 +144,7 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 			$recipe_box .=
 				'| aufwertung = ';
 			if(!empty($item['data_de'][$t]['suffix_item_id'])){
-				$suffix_name = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
+				$suffix_name = sql_prepared_query('SELECT `name_de` FROM '.TABLE_ITEMS.' WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
 				$recipe_box .= (is_array($suffix_name) && isset($suffix_name[0]['name_de']) ? $suffix_name[0]['name_de'] : '');
 			}
 			$recipe_box .= $n;
@@ -173,7 +173,7 @@ function wiki_recipe_de($recipe, $item, $params = array(), $rarity_suffix = fals
 	// parse ingredients
 	for($i=1; $i<5; $i++){
 		if(intval($recipe['ing_count_'.$i]) > 0){
-			$ing = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($recipe['ing_id_'.$i]));
+			$ing = sql_prepared_query('SELECT `name_de` FROM '.TABLE_ITEMS.' WHERE `id` = ?', array($recipe['ing_id_'.$i]));
 			$recipe_box .=
 				'| material'.$i.' = '.$ing[0]['name_de'].$n.
 				($recipe['ing_count_'.$i] > 1 ? '| menge'.$i.' = '.$recipe['ing_count_'.$i].$n : '');
@@ -248,7 +248,7 @@ function wiki_equip_de($item, $params = array()){
 		$equip_box .=
 			'| aufwertung = ';
 		if(!empty($item['data_de'][$t]['suffix_item_id'])){
-			$suffix_name = sql_prepared_query('SELECT `name_de` FROM `gw2_items` WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
+			$suffix_name = sql_prepared_query('SELECT `name_de` FROM '.TABLE_ITEMS.' WHERE `id` = ?', array($item['data_de'][$t]['suffix_item_id']));
 			$equip_box .= (is_array($suffix_name) && isset($suffix_name[0]['name_de']) ? $suffix_name[0]['name_de'] : '');
 		}
 		$equip_box .= $n;
@@ -322,7 +322,7 @@ function wiki_recipe_fr($recipe, $name){
 
 	// get the name of the recipe item if learned from item
 	if((bool)$recipe['from_item'] === true){
-		$unlock = sql_prepared_query('SELECT `name_fr` FROM `gw2_items` WHERE `type` = \'Consumable\' AND `subtype` = \'Unlock\' AND `unlock_id` = ?', array($recipe['recipe_id']));
+		$unlock = sql_prepared_query('SELECT `name_fr` FROM '.TABLE_ITEMS.' WHERE `type` = \'Consumable\' AND `subtype` = \'Unlock\' AND `unlock_id` = ?', array($recipe['recipe_id']));
 		$unlock = $unlock[0]['name_fr'];
 	}
 	else{
@@ -340,7 +340,7 @@ function wiki_recipe_fr($recipe, $name){
 
 	for($i=1; $i<5; $i++){
 		if(intval($recipe['ing_count_'.$i]) > 0){
-			$ing = sql_prepared_query('SELECT `name_fr` FROM `gw2_items` WHERE `id` = ?', array($recipe['ing_id_'.$i]));
+			$ing = sql_prepared_query('SELECT `name_fr` FROM '.TABLE_ITEMS.' WHERE `id` = ?', array($recipe['ing_id_'.$i]));
 			$recipe_box .=
 				'| mat'.$i.' = '.$ing[0]['name_fr'].$n.
 				'| qté'.$i.' = '.$recipe['ing_count_'.$i].$n;

@@ -11,6 +11,7 @@ error_reporting(E_ALL);
 date_default_timezone_set('Europe/Berlin');
 set_time_limit(0);
 
+require_once '../inc/config.inc.php';
 require_once '../inc/mysqli.inc.php';
 require_once '../inc/variables.inc.php';
 require_once '../inc/request.inc.php';
@@ -26,14 +27,14 @@ if(is_array($data) && isset($data['recipes'])){
 	foreach($data['recipes'] as $id){
 		$values[] = array($id, $time);
 	}
-	sql_multi_row_insert('INSERT IGNORE INTO `gw2_recipes` (`recipe_id`, `date_added`) VALUES (?, ?)', $values, 'ii');
+	sql_multi_row_insert('INSERT IGNORE INTO '.TABLE_RECIPES.' (`recipe_id`, `date_added`) VALUES (?, ?)', $values, 'ii');
 	echo 'refresh done.'.$n.count($data['recipes']).' items in recipes.json.'.$n;
 }
 
-$q = sql_query('SELECT `recipe_id` FROM `gw2_recipes` WHERE `updated` = 0 ORDER BY `gw2_recipes`.`recipe_id`');
+$q = sql_query('SELECT `recipe_id` FROM '.TABLE_RECIPES.' WHERE `updated` = 0 ORDER BY '.TABLE_RECIPES.'.`recipe_id`');
 if(is_array($q) && count($q) > 0){
 	$err = array();
-	$sql = 'UPDATE `gw2_recipes` SET `output_id` = ?, `output_count` = ?, `disciplines`= ?, `rating` = ?, `type` = ?, `from_item` = ?, `ing_id_1` = ?, `ing_count_1` = ?, `ing_id_2` = ?, `ing_count_2` = ?, `ing_id_3` = ?, `ing_count_3` = ?, `ing_id_4` = ?, `ing_count_4` = ?, `data` = ?, `updated` = ?, `update_time` = ? WHERE `recipe_id` = ?';
+	$sql = 'UPDATE '.TABLE_RECIPES.' SET `output_id` = ?, `output_count` = ?, `disciplines`= ?, `rating` = ?, `type` = ?, `from_item` = ?, `ing_id_1` = ?, `ing_count_1` = ?, `ing_id_2` = ?, `ing_count_2` = ?, `ing_id_3` = ?, `ing_count_3` = ?, `ing_id_4` = ?, `ing_count_4` = ?, `data` = ?, `updated` = ?, `update_time` = ? WHERE `recipe_id` = ?';
 
 	// i don't use the multiline insert over here as it would blow up the system memory
 	// also this way we insert each line as soon as we get the data from the API

@@ -11,6 +11,7 @@ date_default_timezone_set('Europe/Berlin');
 set_time_limit(0);
 mb_internal_encoding('UTF-8');
 
+require_once '../inc/config.inc.php';
 require_once '../inc/mysqli.inc.php';
 require_once '../inc/request.inc.php';
 
@@ -19,7 +20,7 @@ $n = "\n";
 $starttime = microtime(true);
 $data = gw2_api_request('maps.json');
 if(is_array($data) && isset($data['maps'])){
-#	sql_query('TRUNCATE TABLE `gw2_maps`');
+#	sql_query('TRUNCATE TABLE '.TABLE_MAPS);
 	$values = array();
 	foreach($data['maps'] as $id => $map){
 		$values[] = array(
@@ -37,7 +38,7 @@ if(is_array($data) && isset($data['maps'])){
 		);
 		echo $id.' - '.$map['map_name'].$n;
 	}
-	$sql = 'INSERT IGNORE INTO `gw2_maps` (`map_id`, `continent_id`, `region_id`, `default_floor`, `floors`, `map_rect`, `continent_rect`, `min_level`, `max_level`, `name_en`, `region_en`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+	$sql = 'INSERT IGNORE INTO '.TABLE_MAPS.' (`map_id`, `continent_id`, `region_id`, `default_floor`, `floors`, `map_rect`, `continent_rect`, `min_level`, `max_level`, `name_en`, `region_en`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 	sql_multi_row_insert($sql, $values, 'iiiisssiiss');
 	echo 'refresh done. ('.round((microtime(true) - $starttime),3).'s)'.$n.count($data['maps']).' items in maps.json.'.$n;
 }
@@ -53,7 +54,7 @@ foreach(array('de','es','fr') as $lang){//'en',
 			echo $id.' - '.$map['map_name'].$n;
 		}
 	}
-	sql_multi_row_insert('UPDATE `gw2_maps` SET `name_'.$lang.'` = ?, `region_'.$lang.'` = ? WHERE `map_id` = ?', $values, 'ssi');
+	sql_multi_row_insert('UPDATE '.TABLE_MAPS.' SET `name_'.$lang.'` = ?, `region_'.$lang.'` = ? WHERE `map_id` = ?', $values, 'ssi');
 	echo $lang.' refresh done. ('.round((microtime(true) - $starttime),3).'s)'.$n;
 }
 

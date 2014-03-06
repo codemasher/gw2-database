@@ -7,6 +7,7 @@
 error_reporting(E_ALL);
 set_time_limit(0);
 
+require_once '../inc/config.inc.php';
 require_once '../inc/mysqli.inc.php';
 require_once '../inc/request.inc.php';
 
@@ -15,7 +16,7 @@ $n = "\n";
 $starttime = microtime(true);
 $data = gw2_api_request('colors.json?lang=en');
 if(is_array($data) && isset($data['colors'])){
-	sql_query('TRUNCATE TABLE `gw2_colors`');
+	sql_query('TRUNCATE TABLE '.TABLE_COLORS);
 	$values = array();
 	foreach($data['colors'] as $id => $color){
 		$values[] = array(
@@ -27,7 +28,7 @@ if(is_array($data) && isset($data['colors'])){
 		);
 		echo $id.' - '.$color['name'].$n;
 	}
-	sql_multi_row_insert('INSERT IGNORE INTO `gw2_colors` (`color_id`, `name_en`, `cloth`, `leather`, `metal`) VALUES (?, ?, ?, ?, ?)', $values, 'issss');
+	sql_multi_row_insert('INSERT IGNORE INTO '.TABLE_COLORS.' (`color_id`, `name_en`, `cloth`, `leather`, `metal`) VALUES (?, ?, ?, ?, ?)', $values, 'issss');
 	echo 'refresh done. ('.round((microtime(true) - $starttime),3).'s)'.$n.count($data['colors']).' items in colors.json.'.$n;
 }
 
@@ -41,13 +42,13 @@ foreach(array('de','es','fr') as $lang){//'en',
 			$values[] = array($color['name'], $id);
 			echo $id.' - '.$color['name'].$n;
 		}
-		sql_multi_row_insert('UPDATE `gw2_colors` SET `name_'.$lang.'` = ? WHERE `color_id` = ?', $values, 'si');
+		sql_multi_row_insert('UPDATE '.TABLE_COLORS.' SET `name_'.$lang.'` = ? WHERE `color_id` = ?', $values, 'si');
 		echo $lang.' refresh done. ('.round((microtime(true) - $starttime),3).'s)'.$n;
 	}
 }
 
 
-$q = sql_prepared_query('SELECT `id`, `unlock_id`, `file_id`, `rarity` FROM `gw2_items` WHERE `unlock_type` = ?', array('Dye'));
+$q = sql_prepared_query('SELECT `id`, `unlock_id`, `file_id`, `rarity` FROM '.TABLE_ITEMS.' WHERE `unlock_type` = ?', array('Dye'));
 if(is_array($q)){
 	$values = array();
 	foreach($q as $item){
@@ -78,7 +79,7 @@ if(is_array($q)){
 			$item['unlock_id']
 		);
 	}
-	sql_multi_row_insert('UPDATE `gw2_colors` SET `item_id` = ?, `set` = ?, `icon` = ? WHERE `color_id` = ?', $values, 'issi');
+	sql_multi_row_insert('UPDATE '.TABLE_COLORS.' SET `item_id` = ?, `set` = ?, `icon` = ? WHERE `color_id` = ?', $values, 'issi');
 }
 
 ?>
