@@ -6,6 +6,7 @@
 
 @error_reporting(E_ALL); // change to 0 for production environments
 
+require_once 'inc/config.inc.php';
 require_once 'inc/mysqli.inc.php';
 require_once 'inc/variables.inc.php';
 require_once 'inc/utils.inc.php';
@@ -71,6 +72,11 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 		$values[] = $data['form']['subtype'];
 	}
 
+	if(isset($data['form']['attributes']) && !empty($data['form']['attributes'])){
+		$where .= ' AND `attr_name` = ?';
+		$values[] = $data['form']['attributes'];
+	}
+
 	if(isset($data['form']['weight']) && !empty($data['form']['weight'])){
 		$where .= ' AND `weight` = ?';
 		$values[] = $data['form']['weight'];
@@ -108,7 +114,7 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	}
 
 	// first count the results to create the pagination
-	$count = sql_prepared_query('SELECT COUNT(*) FROM `gw2_items` WHERE '.$where, $values, null, false);
+	$count = sql_prepared_query('SELECT COUNT(*) FROM '.TABLE_ITEMS.' WHERE '.$where, $values, null, false);
 
 	// items per page limit
 	$limit = 40;
@@ -117,8 +123,8 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	$pagination = pagination($count[0][0], $page, $limit);
 
 	// get the item result
-	$sql = 'SELECT `'.$col.'`, `id`, `level`, `rarity` FROM `gw2_items` WHERE '.$where.
-		' ORDER BY `gw2_items`.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.
+	$sql = 'SELECT `'.$col.'`, `id`, `level`, `rarity` FROM '.TABLE_ITEMS.' WHERE '.$where.
+		' ORDER BY '.TABLE_ITEMS.'.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.
 		(empty($pagination['pages']) || !isset($pagination['pages'][$page]) ? 0 : $pagination['pages'][$page]).', '.$limit;
 
 	$result = sql_prepared_query($sql, $values);
@@ -202,7 +208,7 @@ else if(isset($_POST['refresh']) && !empty($_POST['refresh'])){
 
 			$items = wiki_check($items);
 
-			$sql = 'UPDATE `gw2_items` SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?, `subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr1` = ?, `attr2` = ?, `attr3` = ?, `unlock_id` = ?, `name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `desc_de` = ?, `desc_en` = ?, `desc_es` = ?, `desc_fr` = ?,	`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?,`wikipage_de` = ?, `wikipage_en` = ?, `wikipage_es` = ?, `wikipage_fr` = ?, `wiki_checked` = ?, `updated` = 1, `update_time` = ?  WHERE `id` = ?';
+			$sql = 'UPDATE '.TABLE_ITEMS.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?, `subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr1` = ?, `attr2` = ?, `attr3` = ?, `unlock_id` = ?, `name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `desc_de` = ?, `desc_en` = ?, `desc_es` = ?, `desc_fr` = ?,	`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?,`wikipage_de` = ?, `wikipage_en` = ?, `wikipage_es` = ?, `wikipage_fr` = ?, `wiki_checked` = ?, `updated` = 1, `update_time` = ?  WHERE `id` = ?';
 
 			$values = array(
 				$data_en['icon_file_signature'],
@@ -290,17 +296,17 @@ function get_item_details($id, $lng){
 	global $weapon_types, $fixes, $disciplines;
 	$lng = in_array($lng, array('de','en','es','fr')) ? $lng : 'de';
 	$n = "\n";
-	$details = sql_prepared_query('SELECT * FROM `gw2_items` WHERE `id` = ?', array($id));
+	$details = sql_prepared_query('SELECT * FROM '.TABLE_ITEMS.' WHERE `id` = ?', array($id));
 
 	if(is_array($details) && count($details) > 0){
-		// SELECT COUNT(*) AS `count`, `type`, `subtype` FROM `gw2_items` GROUP BY `type`, `subtype` ORDER BY `type` LIMIT 0, 100
+		// SELECT COUNT(*) AS `count`, `type`, `subtype` FROM '.TABLE_ITEMS.' GROUP BY `type`, `subtype` ORDER BY `type` LIMIT 0, 100
 		$d = $details[0];
 
 		// ingredient check
-		$ingredient = sql_prepared_query('SELECT * FROM `gw2_recipes` WHERE `ing_id_1` = ? OR `ing_id_2` = ? OR `ing_id_3` = ? OR `ing_id_4` = ?', array($d['id'], $d['id'], $d['id'], $d['id']));
+		$ingredient = sql_prepared_query('SELECT * FROM '.TABLE_RECIPES.' WHERE `ing_id_1` = ? OR `ing_id_2` = ? OR `ing_id_3` = ? OR `ing_id_4` = ?', array($d['id'], $d['id'], $d['id'], $d['id']));
 
 		// recipe lookup
-		$recipes = sql_prepared_query('SELECT * FROM `gw2_recipes` WHERE `output_id` = ?', array($id));
+		$recipes = sql_prepared_query('SELECT * FROM '.TABLE_RECIPES.' WHERE `output_id` = ?', array($id));
 
 		// overall fixes
 
@@ -339,10 +345,13 @@ function get_item_details($id, $lng){
 			$a_name = str_replace($parts, '', $d['name_de']);
 			$icon = 'Aufgestiegene Leichte Stiefel';
 			$wikicode['de'] =
-				wiki_infobox_armor_de($d, array('icon' => $icon.' Icon.png', 'aussehen' => $a_name.'Rüstung (Leicht)')).$n.
-				'==Beschaffung=='.$n.'* {{Gegenstand Icon|'.$a_name.'Rüstungskiste}}'.$n.$n.
-				(is_array($recipes) && count($recipes) > 0 ? '== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d) : '').$n.
-				'{{Navigationsleiste '.$a_name.'Rüstung}}'.$n;
+				wiki_infobox_armor_de($d).$n. //, array('icon' => $icon.' Icon.png', 'aussehen' => $a_name.'Rüstung (Leicht)')
+				'==Beschaffung=='.
+#				$n.'* {{Gegenstand Icon|'.$a_name.'Rüstungskiste}}'.
+				$n.$n.
+				(is_array($recipes) && count($recipes) > 0 ? '== Herstellung =='.$n.wiki_recipe_de($recipes[0], $d) : '').
+#				$n.'{{Navigationsleiste '.$a_name.'Rüstung}}'.
+				$n;
 		}
 #		else
 #		if($d['type'] === 'Back'){

@@ -91,6 +91,9 @@
 		<select class="options" id="subtype" name="subtype">
 			<option value="">-- subtype --</option>
 		</select>
+		<select class="options" id="attributes" name="attributes">
+			<option value="">-- attributes --</option>
+		</select>
 		<select class="options" id="weight" name="weight">
 			<option value="">-- weight --</option>
 			<option value="Clothing">Clothing</option>
@@ -142,6 +145,70 @@
 			UpgradeComponent: ["Default", "Gem", "Rune", "Sigil"],
 			Weapon: ["Axe", "Dagger", "Focus", "Greatsword", "Hammer", "Harpoon", "LargeBundle", "LongBow", "Mace", "Pistol", "Rifle", "Scepter", "Shield", "ShortBow", "Speargun", "Staff", "Sword", "Torch", "Toy", "Trident", "TwoHandedToy", "Warhorn"]
 		};
+
+		var attributes = {
+			single: {
+				winter_1 : "of Winter (suffix)",
+				festering : "Malign / of Festering",
+				givers_1 : "Giver's (weapon)",
+				compassion : "Healing / of Compassion",
+				might : "Mighty / of Might",
+				precision : "Precise / of Precision",
+				resilience : "Resilient / of Resilience",
+				vitality : "Vital / of Vitality"
+			},
+			double: {
+				ravaging : "Ravaging / of Ravaging",
+				lingering : "Lingering / of Lingering",
+				givers_2w : "Giver's (weapon)",
+				rejuvenation : "Rejuvenating / of Rejuvenation",
+				mending : "Mending / of Mending",
+				potency : "Potent / of Potency",
+				honing : "Honed / of Honing",
+				strength : "Strong / of Strength",
+				vigor : "Vigorous / of Vigor",
+				penetration : "Penetrating / of Penetration",
+				hunter : "Hunter's / of the Hunter",
+				enduring : "Enduring (prefix)",
+				givers_2a : "Giver's (armor) / of Winter",
+				hearty : "Hearty / of Heartiness",
+				stout : "Stout / of the Stout"
+			},
+			triple: {
+				carrion : "Carrion / of Carrion",
+				rabid : "Rabid / of the Rabid",
+				dire : "Dire (prefix)",
+				givers_3w : "Giver's (weapon)",
+				apothecary : "Apothecary's / of the Apothecary",
+				cleric : "Cleric's / of the Cleric",
+				magi : "Magi's / of the Magi",
+				zealot : "Zealot's (Keeper's) / of the Zealot",
+				berserker : "Berserker's / of the Berserker",
+				soldier : "Soldier's / of the Soldier",
+				valkyrie : "Valkyrie / of the Valkyrie",
+				rampager : "Rampager's / of the Rampager",
+				assassin : "Assassin's / of the Assassin",
+				knight_3s : "of the Knight (suffix)",
+				settler : "Settler's (prefix)",
+				givers_3a : "Giver's (armor) / of Winter",
+				cavalier : "Cavalier's (prefix)",
+				knight_3p : "Knight's (prefix)",
+				shaman_3p : "Shaman's (prefix)",
+				sentinel : "Sentinel's (prefix)",
+				shaman_3s : "of the Shaman (suffix)"
+			},
+			multi: {
+				celestial: "Celestial / of the Sky"
+			}
+		};
+
+		// populate the attributes dropdown
+		$H(attributes).each(function(a){
+			$("attributes").insert(new Element("option", {"value":""})).insert(new Element("option", {"value":""}).update('-- '+a.key+' --'));
+			$H(a.value).each(function(v){
+				$("attributes").insert(new Element("option", {"value": v.key}).update(v.value));
+			});
+		});
 
 		$("gw2_search").observe("submit", function(e){
 			Event.stop(e);
@@ -267,8 +334,8 @@
 
 	})();
 
-	// (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-	// ga("create","");ga("send","pageview");ga("set","anonymizeIp",true);
+	//(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	//ga("create","");ga("send","pageview");ga("set","anonymizeIp",true);
 </script>
 </body>
 </html>
