@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS `gw2_items` (
   `signature` varchar(40) COLLATE utf8_bin NOT NULL,
   `file_id` int(10) unsigned NOT NULL DEFAULT '0',
   `rarity` enum('Ascended','Basic','Exotic','Fine','Junk','Legendary','Masterwork','Rare') COLLATE utf8_bin NOT NULL DEFAULT 'Basic',
+  `rarity_id` tinyint(1) unsigned NOT NULL DEFAULT '0',
   `weight` enum('None','Clothing','Light','Medium','Heavy') COLLATE utf8_bin NOT NULL DEFAULT 'None',
   `type` enum('None','Armor','Back','Bag','Consumable','Container','CraftingMaterial','Gathering','Gizmo','MiniPet','Tool','Trinket','Trophy','UpgradeComponent','Weapon') COLLATE utf8_bin NOT NULL DEFAULT 'None',
   `subtype` tinytext COLLATE utf8_bin NOT NULL,
