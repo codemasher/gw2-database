@@ -27,6 +27,18 @@ $rarity = array(
 	'fr' => array('Inutile','Simple','Raffiné','Chef-d\'œuvre','Rare','Exotique','Élevé','Légendaire')
 );
 
+// a bit redundant, just for performance reasons
+$rarity_ids = array(
+	'Junk' => 0,
+	'Basic' => 1,
+	'Fine' => 2,
+	'Masterwork' => 3,
+	'Rare' => 4,
+	'Exotic' => 5,
+	'Ascended' => 6,
+	'Legendary' => 7
+);
+
 // discipline strings
 $disciplines = array(
 	'de' => array('Rüstungsschmied','Konstrukteur','Küchenmeister','Waidmann','Juwelier','Lederer','Schneider','Waffenschmied'),
@@ -72,7 +84,6 @@ $attribute_map = array(
 		'givers_2a ' =>   array('Toughness', 'Healing'), //armor
 		'hearty' =>       array('Vitality', 'Toughness'),
 		'stout' =>        array('Toughness', 'Precision'),
-		'winter_2' =>     array('Toughness', 'Healing'),
 	),
 	'triple' => array(
 		'carrion' =>      array('ConditionDamage', 'Power', 'Vitality'),
