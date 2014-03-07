@@ -117,17 +117,30 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 	$count = sql_prepared_query('SELECT COUNT(*) FROM '.TABLE_ITEMS.' WHERE '.$where, $values, null, false);
 
 	// items per page limit
-	$limit = 40;
+	$limit = isset($data['form']['limit']) && !empty($data['form']['limit']) ? max(1, min(250, intval($data['form']['limit']))) : 50;
 
 	// create the pagination
 	$pagination = pagination($count[0][0], $page, $limit);
 
-	// get the item result
-	$sql = 'SELECT `'.$col.'`, `id`, `level`, `rarity` FROM '.TABLE_ITEMS.' WHERE '.$where.
-		' ORDER BY '.TABLE_ITEMS.'.`'.(check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col).'` LIMIT '.
-		(empty($pagination['pages']) || !isset($pagination['pages'][$page]) ? 0 : $pagination['pages'][$page]).', '.$limit;
+	// ORDER BY clause
+	$orderby_arr = array(
+		'id' => 'id',
+		'name' => $col,
+		'level' => 'level',
+		'rarity' => 'rarity_id',
+		'weight' => 'weight',
+		'attr' => 'attr_name',
+	);
 
-	$result = sql_prepared_query($sql, $values);
+	$orderby = isset($data['form']['orderby']) && array_key_exists($data['form']['orderby'], $orderby_arr) ? $orderby_arr[$data['form']['orderby']] : (check_int($str) || preg_match("/\d+-\d+/", $str) ? 'id' : $col);
+	$orderdir = isset($data['form']['orderdir']) && $data['form']['orderdir'] === 'desc' ? 'DESC' : 'ASC';
+
+	// values for the LIMIT clause
+	$values[] = empty($pagination['pages']) || !isset($pagination['pages'][$page]) ? 0 : $pagination['pages'][$page];
+	$values[] = $limit;
+
+	// get the item result
+	$result = sql_prepared_query('SELECT `'.$col.'`, `id`, `level`, `rarity` FROM '.TABLE_ITEMS.' WHERE '.$where.' ORDER BY `'.TABLE_ITEMS.'`.`'.$orderby.'` '.$orderdir.' LIMIT ? , ?', $values);
 
 	// process the result
 	$list = '';
@@ -294,7 +307,7 @@ else{
  */
 function get_item_details($id, $lng){
 	global $weapon_types, $fixes, $disciplines;
-	$lng = in_array($lng, array('de','en','es','fr')) ? $lng : 'de';
+	$lng = in_array($lng, array('de','en','es','fr'), true) ? $lng : 'de';
 	$n = "\n";
 	$details = sql_prepared_query('SELECT * FROM '.TABLE_ITEMS.' WHERE `id` = ?', array($id));
 
@@ -341,9 +354,9 @@ function get_item_details($id, $lng){
 		);
 
 		if($d['type'] === 'Armor'){
-			$parts = array('Maske','Epauletten','Doublet','Handgelenkschutz','Stiefelhose','Schuhwerk','Antlitz','Schulterschützer','Deckmantel','Greifer','Beinkleid','Schreiter','Visier','Schulterschutz','Brustplatte','Kriegsfäuste','Beintaschen','Beinschienen');
-			$a_name = str_replace($parts, '', $d['name_de']);
-			$icon = 'Aufgestiegene Leichte Stiefel';
+#			$parts = array('Maske','Epauletten','Doublet','Handgelenkschutz','Stiefelhose','Schuhwerk','Antlitz','Schulterschützer','Deckmantel','Greifer','Beinkleid','Schreiter','Visier','Schulterschutz','Brustplatte','Kriegsfäuste','Beintaschen','Beinschienen');
+#			$a_name = str_replace($parts, '', $d['name_de']);
+#			$icon = 'Aufgestiegene Leichte Stiefel';
 			$wikicode['de'] =
 				wiki_infobox_armor_de($d).$n. //, array('icon' => $icon.' Icon.png', 'aussehen' => $a_name.'Rüstung (Leicht)')
 				'==Beschaffung=='.

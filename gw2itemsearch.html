@@ -13,6 +13,7 @@
 		input, textarea, select { font-family: Consolas, "Liberation Mono", Courier, monospace; border:1px solid #aaa; }
 		input:focus, textarea:focus, select:focus { border:1px solid #ccc; }
 		footer { text-align:center; font-size:75%; line-height:1.2em; margin-top:2em; }
+		label { cursor: pointer; }
 
 		/* css-tables */
 		.table-row { display:table; width:100%; }
@@ -64,8 +65,8 @@
 <form id="gw2_search">
 	<input id="search" name="search" type="search" placeholder="item search (name/id)" /><br />
 	<span>
-		<img src="icons/de.png"><input class="options" type="radio" name="lang" value="de" checked="checked" />
-		<img src="icons/en.png"><input class="options" type="radio" name="lang" value="en" />
+		<img src="icons/de.png"><input class="options" type="radio" name="lang" value="de" />
+		<img src="icons/en.png"><input class="options" type="radio" name="lang" value="en" checked="checked" />
 		<img src="icons/es.png"><input class="options" type="radio" name="lang" value="es" />
 		<img src="icons/fr.png"><input class="options" type="radio" name="lang" value="fr" />
 	</span>
@@ -118,8 +119,21 @@
 			<option value="pve">PvE</option>
 			<option value="pvp">PvP</option>
 		</select>
-		<input class="options" type="checkbox" name="redlinks" value="true" /> Redlinks only
+		<br/>
+		Limit <input class="options" name="limit" type="number" min="1" max="250" value="50" placeholder="50" />
+		<select class="options" name="orderby">
+			<option value="">-- order by --</option>
+			<option value="id">id</option>
+			<option value="name">name</option>
+			<option value="level">level</option>
+			<option value="rarity">rarity</option>
+			<option value="weight">weight</option>
+			<option value="attr">attributes</option>
+		</select>
+		<label for="orderdir"><input id="orderdir" class="options" type="checkbox" name="orderdir" value="desc" /> descending order</label>
+		<label for="redlinks"><input id="redlinks" class="options" type="checkbox" name="redlinks" value="true" /> Redlinks only</label>
 	</div>
+	<a id="reset">reset form</a>
 </form>
 <div id="results"></div>
 <footer>
@@ -175,30 +189,30 @@
 				stout : "Stout / of the Stout"
 			},
 			triple: {
-				carrion : "Carrion / of Carrion",
-				rabid : "Rabid / of the Rabid",
-				dire : "Dire (prefix)",
+				carrion : "Carrion (Occam)/ of Carrion",
+				rabid : "Rabid (Ferratus) / of the Rabid",
+				dire : "Dire (Mathilde, prefix)",
 				givers_3w : "Giver's (weapon)",
-				apothecary : "Apothecary's / of the Apothecary",
-				cleric : "Cleric's / of the Cleric",
-				magi : "Magi's / of the Magi",
-				zealot : "Zealot's (Keeper's) / of the Zealot",
-				berserker : "Berserker's / of the Berserker",
-				soldier : "Soldier's / of the Soldier",
-				valkyrie : "Valkyrie / of the Valkyrie",
-				rampager : "Rampager's / of the Rampager",
-				assassin : "Assassin's / of the Assassin",
+				apothecary : "Apothecary's (Ebonmane) / of the Apothecary",
+				cleric : "Cleric's (Tateos) / of the Cleric",
+				magi : "Magi's (Hronk) / of the Magi",
+				zealot : "Zealot's (Keeper) / of the Zealot",
+				berserker : "Berserker's (Zojja) / of the Berserker",
+				soldier : "Soldier's (Ahamid) / of the Soldier",
+				valkyrie : "Valkyrie (Gobrech) / of the Valkyrie",
+				rampager : "Rampager's (Coalforge/Forgemaster) / of the Rampager",
+				assassin : "Assassin's (Saphir/Soros) / of the Assassin",
 				knight_3s : "of the Knight (suffix)",
-				settler : "Settler's (prefix)",
+				settler : "Settler's (Leftpaw, prefix)",
 				givers_3a : "Giver's (armor) / of Winter",
-				cavalier : "Cavalier's (prefix)",
-				knight_3p : "Knight's (prefix)",
-				shaman_3p : "Shaman's (prefix)",
-				sentinel : "Sentinel's (prefix)",
+				cavalier : "Cavalier's (Angchu, prefix)",
+				knight_3p : "Knight's (Beigarth, prefix)",
+				shaman_3p : "Shaman's (Zintl, prefix)",
+				sentinel : "Sentinel's (Tonn, prefix)",
 				shaman_3s : "of the Shaman (suffix)"
 			},
 			multi: {
-				celestial: "Celestial / of the Sky"
+				celestial: "Celestial (Wupwup) / of the Sky"
 			}
 		};
 
@@ -229,6 +243,12 @@
 		});
 
 		$$(".options").invoke("observe", "change", function(){
+			itemSearch();
+		});
+
+		$("reset").observe("click" , function(ev){
+			Event.stop(ev);
+			$("gw2_search").reset();
 			itemSearch();
 		});
 
