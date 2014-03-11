@@ -37,9 +37,9 @@ if(is_array($q) && $count > 0){
 
 	// add stuff from the api-data-json
 	// refresh attributes and add attribute combination names
-	if($stmt = mysqli_prepare($db, 'UPDATE '.TABLE_ITEMS.' SET `attr1` = ?, `attr2` = ?, `attr3` = ?, `attr_name` = ? WHERE `id` = ?')){
+	if($stmt = mysqli_prepare($db, 'UPDATE '.TABLE_ITEMS.' SET `attr_name` = ? WHERE `id` = ?')){
 		/** @noinspection PhpUndefinedVariableInspection */
-		mysqli_stmt_bind_param($stmt, 'ssssi', $attr1, $attr2, $attr3, $attr_name, $id);
+		mysqli_stmt_bind_param($stmt, 'si', $attr_name, $id);
 		foreach($q as $k => $i){
 			$i['data_en'] = json_decode($i['data_en'],1);
 
@@ -55,9 +55,6 @@ if(is_array($q) && $count > 0){
 				$com = attribute_combination($i['data_en'][$t]['infix_upgrade']);
 			}
 
-			$attr1 = isset($com[1][0]) ? $com[1][0] : '';
-			$attr2 = isset($com[1][1]) ? $com[1][1] : '';
-			$attr3 = isset($com[1][2]) ? $com[1][2] : '';
 			$attr_name = $com[0];
 			$id = $i['id'];
 			mysqli_stmt_execute($stmt);
