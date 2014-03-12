@@ -127,7 +127,7 @@ if(isset($_POST['search']) && !empty($_POST['search'])){
 		'id' => 'id',
 		'name' => $col,
 		'level' => 'level',
-		'rarity' => 'rarity_id',
+		'rarity' => 'rarity',
 		'weight' => 'weight',
 		'attr' => 'attr_name',
 	);
@@ -495,7 +495,7 @@ function get_item_details($id, $lng){
 			$response .= '
 		<img src="icons/'.$lang.'.png"> <a class="'.($d['wikipage_'.$lang] > 0 ? 'blue' : 'red').'link" href="http://'.$wiki.'.guildwars2.com/wiki/'.str_replace(' ', '_', $d['name_'.$lang]).'" target="wiki-'.$lang.'">'.$d['name_'.$lang].'</a> -
 		<a href="http://'.$wiki.'.guildwars2.com/index.php?title='.str_replace(' ', '_', $d['name_'.$lang]).'&amp;action=edit" target="wiki-'.$lang.'">edit wiki</a>
-		(<a target="apidata" href="https://api.guildwars2.com/v1/item_details.json?item_id='.$d['id'].'&amp;lang='.$lang.'">API</a>)<br />
+		(<a target="apidata" href="https://api.guildwars2.com/v1/item_details.json?item_id='.$d['id'].'&amp;lang='.$lang.'">API</a> - <a target="gw2treasures" href="http://'.$lang.'.gw2treasures.de/item/'.$d['id'].'">gw2treasures</a>)<br />
 		<input type="text" readonly="readonly" value="'.$d['name_'.$lang].'" class="selectable" /><br />
 		<textarea cols="20" readonly="readonly" class="selectable" rows="3">'.$interwiki[$lang].'</textarea><br />';
 		}
