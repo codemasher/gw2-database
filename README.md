@@ -4,7 +4,7 @@ Of course these databases could be used for any other stuff - feel free to grab 
 
 ## Requirements
 - A local webserver like [XAMPP](http://www.apachefriends.org/xampp.html) is helpful ;)
-- **PHP 5.3+**
+- **PHP 5.4+**
 - **MySQL** or **MariaDB**
 
 XAMPP is great and easy to install but i prefer to create my own AMP mix with the 64bit Apache/PHP releases from [Apache Lounge](http://www.apachelounge.com/) and MariaDB
