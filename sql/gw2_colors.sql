@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS `gw2_colors` (
   `color_id` smallint(5) unsigned NOT NULL,
+  `api_order` smallint(5) unsigned NOT NULL,
   `item_id` mediumint(6) unsigned NOT NULL,
   `tone` enum('red','orange','yellow','green','blue','purple','brown','gray','none') COLLATE utf8_bin NOT NULL DEFAULT 'none',
   `set` enum('starter','common','uncommon','rare','special','none') COLLATE utf8_bin NOT NULL DEFAULT 'none',
