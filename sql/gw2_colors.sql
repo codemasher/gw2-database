@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `gw2_colors` (
   `name_en` tinytext COLLATE utf8_bin NOT NULL,
   `name_es` tinytext COLLATE utf8_bin NOT NULL,
   `name_fr` tinytext COLLATE utf8_bin NOT NULL,
+  `base_rgb` tinytext COLLATE utf8_bin NOT NULL,
   `cloth` tinytext COLLATE utf8_bin NOT NULL,
   `leather` tinytext COLLATE utf8_bin NOT NULL,
   `metal` tinytext COLLATE utf8_bin NOT NULL,
