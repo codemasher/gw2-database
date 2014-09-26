@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS `gw2_worlds` (
   `world_id` SMALLINT(4) unsigned NOT NULL,
-  `lang` enum('us','eu','de','fr','es') COLLATE utf8_bin NOT NULL,
-  `name_de` tinytext COLLATE utf8_bin NOT NULL,
-  `name_en` tinytext COLLATE utf8_bin NOT NULL,
-  `name_es` tinytext COLLATE utf8_bin NOT NULL,
-  `name_fr` tinytext COLLATE utf8_bin NOT NULL,
+  `lang` enum('us','eu','de','fr','es') COLLATE utf8mb4_bin NOT NULL,
+  `name_de` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `name_en` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `name_es` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `name_fr` tinytext COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`world_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 
 INSERT INTO `gw2_worlds` (`world_id`, `lang`, `name_de`, `name_en`, `name_es`, `name_fr`) VALUES
