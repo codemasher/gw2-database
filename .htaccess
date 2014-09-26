@@ -1,0 +1,5 @@
+<Files "common.php">
+  Order Deny,Allow
+  Deny from All
+</Files>
+
