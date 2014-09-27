@@ -123,7 +123,7 @@ class GW2API{
 		$this->api_error = false;
 		$this->api_error_message = '';
 
-		$url = $this->api_base.'v'.$this->api_version.'/'.$endpoint;
+		$url = $this->api_base.'/'.$endpoint;
 		$query = count($params) > 0 ? '?'.http_build_query($params) : '';
 
 		$ch = curl_init();
