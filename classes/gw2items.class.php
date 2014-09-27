@@ -137,16 +137,15 @@ class GW2Items extends GW2API{
 	 */
 	public function refresh_db(){
 		global $db;
-		$this->request('items.json');
-		if(is_array($this->api_response) && isset($this->api_response['items'])){
-			print_r($this->api_response);
+		$this->request('v2/items');
+		if(is_array($this->api_response) && count($this->api_response) > 0){
 			$values = [];
 			$time = time();
-			foreach($this->api_response['items'] as $item){
+			foreach($this->api_response as $item){
 				$values[] = [$item, $time];
 			}
 			$db->multi_insert('INSERT IGNORE INTO '.TABLE_ITEMS.' (`id`, `date_added`) VALUES (?, ?)', $values);
-			$this->log('Item database refresh done. '.count($this->api_response['items']).' items in items.json.');
+			$this->log('Item database refresh done. '.count($this->api_response).' items in items.json.');
 		}
 	}
 
