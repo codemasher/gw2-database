@@ -94,6 +94,17 @@ class GW2API{
 	 */
 	public $log_to_cli = true;
 
+	private $chatlink_types = [
+		'coin'   => 1,
+		'item'   => 2,
+		'text'   => 3, // http://wiki.guildwars2.com/wiki/Chat_link_format/0x03_codes
+		'map'    => 4,
+		'skill'  => 7,
+		'trait'  => 8,
+		'recipe' => 10,
+		'skin'   => 11,
+		'outfit' => 12
+	];
 
 	/**
 	 * log wrapper
@@ -169,9 +180,78 @@ class GW2API{
 	public function recalc_coords($continent_rect, $map_rect, $point){
 		// don't look at it. really! it will melt your brain and make your eyes bleed!
 		return [
-			round($continent_rect[0][0]+($continent_rect[1][0]-$continent_rect[0][0])*($point[0]-$map_rect[0][0])/($map_rect[1][0]-$map_rect[0][0])),
-			round($continent_rect[0][1]+($continent_rect[1][1]-$continent_rect[0][1])*(1-($point[1]-$map_rect[0][1])/($map_rect[1][1]-$map_rect[0][1])))
+			round($continent_rect[0][0] + ($continent_rect[1][0] - $continent_rect[0][0]) * ($point[0] - $map_rect[0][0]) / ($map_rect[1][0] - $map_rect[0][0])),
+			round($continent_rect[0][1] + ($continent_rect[1][1] - $continent_rect[0][1]) * (1 - ($point[1] - $map_rect[0][1]) / ($map_rect[1][1] - $map_rect[0][1])))
 		];
+	}
+
+	/**
+	 * @param string $type
+	 * @param int    $id
+	 *
+	 * @return string
+	 *
+	 * @author {@link https://twitter.com/poke poke}
+	 * @link http://wiki.guildwars2.com/wiki/Widget:Game_link
+	 */
+	public function chatlink_encode($type, $id){
+		$data = [];
+		while ($id > 0) {
+			$data[] = $id & 255;
+			$id = $id >> 8;
+		}
+
+		while (count($data) < 4 || count($data) % 2 !== 0) {
+			$data[] = 0;
+		}
+
+		// add quantity if we are encoding an item
+		if ($type === 2) {
+			array_unshift($data, 1);
+		}
+		array_unshift($data, $this->chatlink_types[$type]);
+
+		// encode data
+		$chatlink = '';
+		for ($i = 0; $i < count($data); $i++) {
+			$chatlink .= chr($data[$i]);
+        }
+
+		return '[&'.base64_encode($chatlink).']';
+	}
+
+	/**
+	 * @param $chatlink
+	 *
+	 * @return array|bool
+	 *
+	 * @author {@link https://twitter.com/poke poke}
+	 * @link   http://ideone.com/0RSpAA
+	 */
+	public function chatlink_decode($chatlink){
+		if(preg_match('/\[&([a-z\d+\/]+=*)\]/i', $chatlink)){
+			// decode base64 and read octets
+			$data = [];
+			foreach(str_split(base64_decode($chatlink)) as $char){
+				$data[] = ord($char);
+			}
+
+			if(!in_array($data[0], $this->chatlink_types)){
+				// invalid type
+				return false;
+			}
+
+			// items have the quantity first, so set an offset
+			$o = $data[0] === 2 ? 1 : 0;
+
+			// get id
+			$id = $data[3 + $o] << 16 | $data[2 + $o] << 8 | $data[1 + $o];
+
+			return [$id, array_keys($this->chatlink_types, $data[0])[0]];
+		}
+
+		// invalid chatlink
+		return false;
 	}
 
 }
