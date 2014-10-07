@@ -164,15 +164,20 @@ class GW2Items extends GW2API{
 
 		if(is_array($items)){
 			$ids = [];
+
+			// fetch all the IDs into a one dimensional array...
 			foreach($items as $id){
 				$ids[] = $id['id'];
 			}
 
+			// ...and put them into chunks...
 			$ids = array_chunk($ids, $this->chunksize);
 
 			$urls = [];
+			// ...now loop through the chunks
 			foreach($ids as $chunk){
 				$chunk = implode(',', $chunk);
+				// ...and create the request for each chunk and language
 				foreach($this->api_languages as $lang){
 					$urls[] = http_build_query(['lang' => $lang, 'ids' => $chunk]);
 				}
@@ -201,8 +206,12 @@ class GW2Items extends GW2API{
 					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_name` = ?, `unlock_id` = ?,
 					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `data_de` = ?, `data_en` = ?, `data_es` = ?,
 					`data_fr` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
+
+						// loop through the chunk's item ids and process the data
 						foreach($ids as $id){
 							$values[] = $this->parse_itemdata($id);
+
+							// remove the processed item from the temp array to not blow up the memory
 							unset($this->temp_data[$id]);
 						}
 						$db->multi_insert($sql, $values);
