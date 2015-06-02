@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `gw2_items` (
   `file_id` int(10) unsigned NOT NULL DEFAULT '0',
   `rarity` enum('Junk','Basic','Fine','Masterwork','Rare','Exotic','Ascended','Legendary') COLLATE utf8mb4_bin NOT NULL DEFAULT 'Junk',
   `weight` enum('None','Clothing','Light','Medium','Heavy') COLLATE utf8mb4_bin NOT NULL DEFAULT 'None',
-  `type` enum('None','Armor','Back','Bag','Consumable','Container','CraftingMaterial','Gathering','Gizmo','MiniPet','Tool','Trinket','Trophy','UpgradeComponent','Weapon') COLLATE utf8mb4_bin NOT NULL DEFAULT 'None',
+  `type` enum('None','Armor','Back','Bag','Consumable','Container','CraftingMaterial','Gathering','Gizmo','MiniPet','Tool','Trait','Trinket','Trophy','UpgradeComponent','Weapon') COLLATE utf8mb4_bin NOT NULL DEFAULT 'None',
   `subtype` tinytext COLLATE utf8mb4_bin NOT NULL,
   `unlock_type` tinytext COLLATE utf8mb4_bin NOT NULL,
   `level` tinyint(2) unsigned NOT NULL DEFAULT '0',
