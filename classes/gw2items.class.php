@@ -163,14 +163,9 @@ class GW2Items extends GW2API{
 		$items = $db->prepared_query('SELECT `id` FROM '.TABLE_ITEMS.($full_update ? '' : ' WHERE `updated` = 0'));
 
 		if(is_array($items)){
-			$ids = [];
 
-			// fetch all the IDs into a one dimensional array...
-			foreach($items as $id){
-				$ids[] = $id['id'];
-			}
-
-			// ...and put them into chunks...
+			// fetch all the IDs into a one dimensional array and put them into chunks...
+			$ids = array_column($items, 'id');
 			$ids = array_chunk($ids, $this->chunksize);
 
 			$urls = [];
