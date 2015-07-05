@@ -124,10 +124,11 @@ class GW2API{
 	 *
 	 * @param string $endpoint
 	 * @param array  $params
+	 * @param string $apikey
 	 *
 	 * @return bool
 	 */
-	public function request($endpoint, array $params = []){
+	public function request($endpoint, array $params = [], $apikey = ''){
 
 		// reset fields
 		$this->api_response = null;
@@ -139,7 +140,7 @@ class GW2API{
 
 		$ch = curl_init();
 
-		curl_setopt_array($ch, [
+		$options = [
 			CURLOPT_URL            => $url.$query,
 #			CURLOPT_VERBOSE        => true,
 #			CURLOPT_HEADER         => true,
@@ -147,7 +148,18 @@ class GW2API{
 			CURLOPT_SSL_VERIFYHOST => 2,
 			CURLOPT_CAINFO         => BASEDIR.$this->ca_info,
 			CURLOPT_RETURNTRANSFER => true,
-		]);
+		];
+
+		// since the format of an API key may change, we just check if it's present
+		if(!empty($apikey)){
+			$options += [
+				CURLOPT_HTTPHEADER => [
+					'Authorization: Bearer '.$apikey,
+				]
+			];
+		}
+
+		curl_setopt_array($ch, $options);
 
 		$data = curl_exec($ch);
 		$info = curl_getinfo($ch);
