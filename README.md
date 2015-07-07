@@ -4,7 +4,7 @@ Of course these databases could be used for any other stuff - feel free to grab 
 
 ## Requirements
 - A local webserver like [XAMPP](http://www.apachefriends.org/xampp.html) is helpful ;)
-- **PHP 5.5+**. Why? Because [array_column()](http://php.net/manual/en/function.array-column.php) and fancy [array syntax and dereferencing](http://php.net/manual/en/language.types.array.php)
+- **PHP 5.5+**. Why? Because reasons.
 - **MySQL** or **MariaDB**
 
 XAMPP is great and easy to install but i prefer to create my own AMP mix with the 64bit Apache/PHP releases from [Apache Lounge](http://www.apachelounge.com/) and MariaDB
