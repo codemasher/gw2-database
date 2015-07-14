@@ -41,7 +41,7 @@ class GW2Maps extends GW2API{
 			if($info['http_code'] === 200){
 				$location = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info['url'], PHP_URL_PATH)));
 				$this->temp_data[] = array_merge($location, [$response]);
-				echo 'updating floor #'.$location[1].', continent: '.$location[0].', data: '.$response.PHP_EOL;
+				$this->log('updating floor #'.$location[1].', continent: '.$location[0].', data: '.$response);
 			}
 			else{
 				$this->temp_failed[] = $info['url'];
@@ -91,7 +91,7 @@ class GW2Maps extends GW2API{
 					$maps = [];
 					foreach($map_arr as $map){
 						$maps[] = array_merge([$map], $location);
-						echo 'Adding map #'.$map.', continent: '.$location[0].', floor: '.$location[1].', region: '.$location[2].PHP_EOL;
+						$this->log('Adding map #'.$map.', continent: '.$location[0].', floor: '.$location[1].', region: '.$location[2]);
 					}
 
 					$sql = 'INSERT INTO `gw2_maps` (`map_id`, `continent_id`, `floor_id`, `region_id`) VALUES (?,?,?,?)';
@@ -112,7 +112,7 @@ class GW2Maps extends GW2API{
 					]);
 
 					$db->prepared_query($sql, $regions);
-					echo 'Region '.$this->temp_data[$path_hash]['en']['name'].' added, data:'.json_encode(array_column($this->temp_data[$path_hash]['en']['maps'], 'id')).'.'.PHP_EOL;
+					$this->log('Region '.$this->temp_data[$path_hash]['en']['name'].' added, data:'.json_encode(array_column($this->temp_data[$path_hash]['en']['maps'], 'id')).'.');
 					unset($this->temp_data[$path_hash]);
 				}
 			}
@@ -170,7 +170,7 @@ class GW2Maps extends GW2API{
 					], explode('/', str_replace(['/v2/continents/', 'floors/', 'regions/', 'maps/'], '', $path)));
 
 					$db->prepared_query($sql, $values);
-					echo 'Map #'.$this->temp_data[$path_hash]['en']['id'].' updated: '.$this->temp_data[$path_hash]['en']['name'].PHP_EOL;
+					$this->log('Map #'.$this->temp_data[$path_hash]['en']['id'].' updated: '.$this->temp_data[$path_hash]['en']['name']);
 					unset($this->temp_data[$path_hash]);
 				}
 			}
