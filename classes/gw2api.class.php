@@ -94,6 +94,9 @@ class GW2API{
 	 */
 	public $log_to_cli = true;
 
+	/**
+	 * @var array
+	 */
 	private $chatlink_types = [
 		'coin'   => 1,
 		'item'   => 2,
@@ -105,6 +108,13 @@ class GW2API{
 		'skin'   => 11,
 		'outfit' => 12
 	];
+
+	// used in $this->multi_request()
+	protected $temp_data = [];
+	protected $temp_failed = [];
+	public function __destruct(){
+		print_r($this->temp_failed);
+	}
 
 	/**
 	 * log wrapper
@@ -181,6 +191,35 @@ class GW2API{
 	}
 
 	/**
+	 * @param array    $urls
+	 * @param callable $callback
+	 * @param string   $base_url
+	 * @param array    $curl_options
+	 */
+	public function multi_request(array $urls, $base_url, callable $callback, array $curl_options = []){
+		// reset temp arrays
+		$this->temp_data = [];
+		$this->temp_failed = [];
+
+		$rolling_curl = new RollingCurl($urls, $callback);
+		$rolling_curl->base_url = $base_url;
+		$rolling_curl->window_size = 10;
+
+		$rolling_curl->curl_options = [
+			CURLOPT_SSL_VERIFYPEER => true,
+			CURLOPT_SSL_VERIFYHOST => 2,
+			CURLOPT_CAINFO         => BASEDIR.$this->ca_info,
+			CURLOPT_RETURNTRANSFER => true,
+		];
+
+		if(!empty($curl_options)){
+			$rolling_curl->curl_options = array_merge($rolling_curl->curl_options, $curl_options);
+		}
+
+		$rolling_curl->process();
+	}
+
+	/**
 	 * The ugly coordinate recalculation
 	 *
 	 * @param array $continent_rect
@@ -189,7 +228,7 @@ class GW2API{
 	 *
 	 * @return array point
 	 */
-	public function recalc_coords($continent_rect, $map_rect, $point){
+	public function recalc_coords(array $continent_rect, array $map_rect, array $point){
 		// don't look at it. really! it will melt your brain and make your eyes bleed!
 		return [
 			round($continent_rect[0][0] + ($continent_rect[1][0] - $continent_rect[0][0]) * ($point[0] - $map_rect[0][0]) / ($map_rect[1][0] - $map_rect[0][0])),
