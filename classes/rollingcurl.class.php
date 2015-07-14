@@ -20,7 +20,7 @@ class RollingCurl{
 	public $base_url = '';
 
 	/**
-	 * the requests - make sure to specify the full URL if you don't use $base_url
+	 * the request URLs - make sure to specify the full URL if you don't use $base_url
 	 * @var array
 	 */
 	public $urls = [];
@@ -75,9 +75,6 @@ class RollingCurl{
 		$this->urls = $urls;
 		$this->callback = $callback;
 		$this->request_count = count($this->urls);
-		if($this->request_count < $this->window_size){
-			$this->window_size = $this->request_count;
-		}
 	}
 
 	/**
@@ -96,13 +93,16 @@ class RollingCurl{
 		$ch = curl_init($this->base_url.$this->urls[$index]);
 		curl_setopt_array($ch, $this->curl_options);
 		curl_multi_add_handle($this->handle, $ch);
-#		echo $this->base_url.$this->urls[$index].PHP_EOL;
 	}
 
 	/**
 	 * processes the requests
 	 */
 	public function process(){
+		if($this->request_count < $this->window_size){
+			$this->window_size = $this->request_count;
+		}
+
 		for($i = 0; $i < $this->window_size; $i++){
 			$this->create_handle($i);
 		}
