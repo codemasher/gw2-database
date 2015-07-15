@@ -3,7 +3,7 @@
  * MySQLi Wrapper class
  *
  * @filesource sql.class.php
- * @version    0.1.0
+ * @version    0.2.0
  * @link       https://github.com/codemasher/gw2-database/blob/master/classes/sql.class.php
  * @created    27.12.13
  *
@@ -16,7 +16,37 @@
 /**
  * Class SQL
  */
-class SQL extends mysqli{
+class SQL{
+
+	/**
+	 * @var string
+	 */
+	private $host = null;
+
+	/**
+	 * @var string
+	 */
+	private $user = null;
+
+	/**
+	 * @var string
+	 */
+	private $password = null;
+
+	/**
+	 * @var string
+	 */
+	private $database = null;
+
+	/**
+	 * @var int
+	 */
+	private $port = null;
+
+	/**
+	 * @var string
+	 */
+	private $socket = null;
 
 	/**
 	 * Connection timeout
@@ -36,93 +66,110 @@ class SQL extends mysqli{
 	 * Use a secure connection?
 	 * @var bool
 	 */
-	public $use_ssl = false;
+	private $use_ssl = false;
 
 	/**
 	 * The path name to the certificate authority file.
 	 * @var string
 	 * @link http://php.net/manual/mysqli.ssl-set.php
 	 */
-	public $ssl_ca = null;
+	private $ssl_ca = null;
 
 	/**
 	 * The pathname to a directory that contains trusted SSL CA certificates in PEM format.
 	 * @var string
 	 */
-	public $ssl_capath = null;
+	private $ssl_capath = null;
 
 	/**
 	 * The path name to the certificate file.
 	 * @var string
 	 */
-	public $ssl_cert = null;
+	private $ssl_cert = null;
 
 	/**
 	 * A list of allowable ciphers to use for SSL encryption.
 	 * @var string
 	 */
-	public $ssl_cipher = null;
+	private $ssl_cipher = null;
 
 	/**
 	 * The path name to the key file.
 	 * @var string
 	 */
-	public $ssl_key = null;
+	private $ssl_key = null;
 
+	/**
+	 * @var resource
+	 */
+	private $mysqli;
 
 	/**
 	 * Constructor
-	 *
-	 * Initializes MySQLi and sets some base options
 	 */
 	public function __construct(){
 		// init mysqli
-		parent::init();
-
-		// set timeout
-		if(!parent::options(MYSQLI_OPT_CONNECT_TIMEOUT, $this->timeout)){
-			exit('Could not set database timeout.');
-		}
-
-		// using ssl?
-		if($this->use_ssl){
-			parent::ssl_set($this->ssl_key , $this->ssl_cert, $this->ssl_ca, $this->ssl_capath, $this->ssl_cipher);
-		}
+		$this->mysqli = mysqli_init();
 	}
 
+
+	public function set_credentials($host = null, $user = null, $password = null, $database = null, $port = null, $socket = null){
+		$this->host = $host;
+		$this->user = $user;
+		$this->password = $password;
+		$this->database = $database;
+		$this->port = $port;
+		$this->socket = $socket;
+
+		return $this;
+	}
+
+	public function set_ssl($use_ssl = false, $ssl_key = null, $ssl_cert = null, $ssl_ca = null, $ssl_capath = null, $ssl_cipher = null){
+		$this->use_ssl = $use_ssl;
+		$this->ssl_key = $ssl_key;
+		$this->ssl_cert = $ssl_cert;
+		$this->ssl_ca = $ssl_ca;
+		$this->ssl_capath = $ssl_capath;
+		$this->ssl_cipher = $ssl_cipher;
+
+		return $this;
+	}
 	/**
 	 * Connect
 	 *
 	 * Establishes a connection to a MySQL database and forces UTF-8 character set
 	 *
-	 * @link http://php.net/manual/mysqli.construct.php
-	 *
-	 * @param string $host     Can be either a host name or an IP address.
-	 *                         Passing the NULL value or the string "localhost" to this parameter, the local host is assumed.
-	 * @param string $user     The MySQL user name.
-	 * @param string $password If not provided or NULL, the MySQL server will attempt to authenticate the user
-	 *                         against those user records which have no password only.
-	 * @param string $database If provided will specify the default database to be used when performing queries.
-	 * @param string $port     Specifies the port number to attempt to connect to the MySQL server.
-	 * @param string $socket   Specifies the socket or named pipe that should be used.
-	 *
-	 * @return bool|void
+	 * @return resource|bool
 	 */
-	public function connect($host = null, $user = null, $password = null, $database = null, $port = null, $socket = null){
+	public function connect(){
+		if($this->mysqli->connect_errno){
+			return $this->mysqli;
+		}
+
+		// set timeout
+		if(!$this->mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, $this->timeout)){
+			exit('Could not set database timeout.');
+		}
+
+		// using ssl?
+		if($this->use_ssl){
+			$this->mysqli->ssl_set($this->ssl_key, $this->ssl_cert, $this->ssl_ca, $this->ssl_capath, $this->ssl_cipher);
+		}
+
 		// connect
-		if(!parent::real_connect($host, $user, $password, $database, $port, $socket)){
+		if(!$this->mysqli->real_connect($this->host, $this->user, $this->password, $this->database, $this->port, $this->socket)){
 			// don't ever expose SQL errors to the public.
 			// this is enough info for the user
 			exit('Could not connect to the database.');
 		}
 
 		// try to set the character set
-		if(!parent::set_charset($this->charset)){
+		if(!$this->mysqli->set_charset($this->charset)){
 			exit('Could not set database charset.');
 		}
 
 		// everything fine
-		return true;
+		return $this->mysqli || false;
 	}
 
 	/**
@@ -143,11 +190,12 @@ class SQL extends mysqli{
 			}
 		}
 		else{
-			if($specialchars == true){
+			if($specialchars === true){
 				$data = htmlspecialchars($data, null, 'UTF-8', false);
 			}
-			$data = parent::real_escape_string($data);
+			$data = $this->mysqli->real_escape_string($data);
 		}
+
 		return $data;
 	}
 
@@ -164,25 +212,34 @@ class SQL extends mysqli{
 	 *
 	 * @param string $sql   The SQL statement
 	 * @param bool   $assoc [optional] If <i>true</i>, the fields are named with the respective column names, otherwise numbered
+	 * @param string $index [optional] an index column to assingn as the result's keys
 	 *
 	 * @return array|bool <i>array</i> with results, <i>true</i> on void query success, otherwise <i>false</i>.
 	 */
-	public function simple_query($sql, $assoc = true){
-		if($result = parent::query($sql)){
+	public function simple_query($sql, $assoc = true, $index = ''){
+		if($result = $this->mysqli->query($sql)){
 			// ok, we have a result with one or more rows, loop out the rows and output as array
 			if(!is_bool($result)){
 				$out = [];
 				if($result->num_rows > 0){
-					while($r = $assoc === true ? $result->fetch_assoc() : $result->fetch_row()){
-						$out[] = $r;
+					while($row = $assoc === true ? $result->fetch_assoc() : $result->fetch_row()){
+						if($assoc === true && !empty($index) && isset($row[$index])){
+							$out[$row[$index]] = $row;
+						}
+						else{
+							$out[] = $row;
+						}
 					}
 				}
 				$result->free();
+
 				return $out;
 			}
+
 			// void result
 			return true;
 		}
+
 		return false;
 	}
 
@@ -197,11 +254,12 @@ class SQL extends mysqli{
 	 *
 	 * @return array $references destination
 	 */
-	public function get_references(array $array){
+	private function get_references(array $array){
 		$references = [];
 		foreach($array as $key => &$value){
 			$references[$key] = &$value;
 		}
+
 		return $references;
 	}
 
@@ -220,12 +278,13 @@ class SQL extends mysqli{
 	 * @param string $types  [optional] the types for each column: <b>b</b>lob, <b>d</b>ouble (float), <b>i</b>nteger,
 	 *                       <b>s</b>tring, see http://php.net/manual/mysqli-stmt.bind-param.php
 	 * @param bool   $assoc  [optional] If <i>true</i>, the fields are named with the respective column names, otherwise numbered
+	 * @param string $index  [optional] an index column to assingn as the result's keys
 	 *
 	 * @return array|bool Array with results, true on void query success, otherwise false
 	 */
-	public function prepared_query($sql, array $values = [], $types = '', $assoc = true){
+	public function prepared_query($sql, array $values = [], $types = '', $assoc = true, $index = ''){
 		// create prepared statement
-		$stmt = parent::stmt_init();
+		$stmt = $this->mysqli->stmt_init();
 		$reflection = new ReflectionClass('mysqli_stmt');
 		$method = $reflection->getMethod('prepare');
 		if($method->invokeArgs($stmt, [$sql])){
@@ -273,7 +332,13 @@ class SQL extends mysqli{
 			$count = 0;
 			while($stmt->fetch()){
 				foreach($out as $k => $v){
-					$output[$count][$k] = $v;
+					// if $index is set, assign the given column as key
+					if($assoc === true && !empty($index) && isset($out[$index])){
+						$output[$out[$index]][$k] = $v;
+					}
+					else{
+						$output[$count][$k] = $v;
+					}
 				}
 				$count++;
 			}
@@ -281,6 +346,7 @@ class SQL extends mysqli{
 			// KTHXBYE!
 			$stmt->free_result();
 			$stmt->close();
+
 			return ($count === 0) ? true : $output;
 		}
 
@@ -302,7 +368,7 @@ class SQL extends mysqli{
 	public function multi_insert($sql, $values, $types = ''){
 		// check if the array is multidimensional
 		if(is_array($values) && count($values) > 0 && is_array($values[0]) && count($values[0]) > 0){
-			$stmt = parent::stmt_init();
+			$stmt = $this->mysqli->stmt_init();
 			$reflection = new ReflectionClass('mysqli_stmt');
 			$method = $reflection->getMethod('prepare');
 			if($method->invokeArgs($stmt, [$sql])){
@@ -317,8 +383,10 @@ class SQL extends mysqli{
 				}
 			}
 			$stmt->close();
+
 			return true;
 		}
+
 		return false;
 	}
 

@@ -70,6 +70,5 @@ require_once(INCLUDEDIR.'func_common.inc.php');
 
 // init stuff
 $db = new SQL();
-$db->connect($mysql['server'], $mysql['user'], $mysql['password'], $mysql['dbname']);
-
+$db->set_credentials($mysql['server'], $mysql['user'], $mysql['password'], $mysql['dbname'])->connect();
 $conf = new Config();
