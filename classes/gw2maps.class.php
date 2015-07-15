@@ -18,11 +18,13 @@
  */
 class GW2Maps extends GW2API{
 
+	public function __construct(){
+		parent::__construct();
+	}
 	/**
 	 *
 	 */
 	public function refresh_floors(){
-		global $db;
 #		$this->request('v2/continents');
 #		$continents = $this->api_response;
 		$continents = [1, 2];
@@ -48,16 +50,15 @@ class GW2Maps extends GW2API{
 			}
 		});
 
-		$db->simple_query('TRUNCATE TABLE `gw2_floors`');
-		$db->multi_insert('INSERT INTO `gw2_floors` (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)', $this->temp_data);
+		$this->db->simple_query('TRUNCATE TABLE `gw2_floors`');
+		$this->db->multi_insert('INSERT INTO `gw2_floors` (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)', $this->temp_data);
 	}
 
 	/**
 	 *
 	 */
 	public function refresh_regions_maps(){
-		global $db;
-		$floors = $db->simple_query('SELECT * FROM `gw2_floors`');
+		$floors = $this->db->simple_query('SELECT * FROM `gw2_floors`');
 		$urls_m = [];
 		$urls_r = [];
 		foreach($floors as $floor){
@@ -73,11 +74,10 @@ class GW2Maps extends GW2API{
 			}
 		}
 
-		$db->simple_query('TRUNCATE TABLE `gw2_regions`');
-		$db->simple_query('TRUNCATE TABLE `gw2_maps`');
+		$this->db->simple_query('TRUNCATE TABLE `gw2_regions`');
+		$this->db->simple_query('TRUNCATE TABLE `gw2_maps`');
 
 		$this->multi_request($urls_r, $this->api_base.'v2/continents/', function ($response, $info){
-			global $db;
 			if($info['http_code'] === 200){
 				$response = json_decode($response, true);
 				$path = parse_url($info['url'], PHP_URL_PATH);
@@ -95,7 +95,7 @@ class GW2Maps extends GW2API{
 					}
 
 					$sql = 'INSERT INTO `gw2_maps` (`map_id`, `continent_id`, `floor_id`, `region_id`) VALUES (?,?,?,?)';
-					$db->multi_insert($sql, $maps);
+					$this->db->multi_insert($sql, $maps);
 
 
 					$sql = 'INSERT INTO `gw2_regions` (`continent_id`, `floor_id`, `region_id`,
@@ -111,7 +111,7 @@ class GW2Maps extends GW2API{
 						$this->temp_data[$path_hash]['fr']['name'],
 					]);
 
-					$db->prepared_query($sql, $regions);
+					$this->db->prepared_query($sql, $regions);
 					$this->log('Region '.$this->temp_data[$path_hash]['en']['name'].' added, data:'.json_encode(array_column($this->temp_data[$path_hash]['en']['maps'], 'id')).'.');
 					unset($this->temp_data[$path_hash]);
 				}
@@ -126,8 +126,7 @@ class GW2Maps extends GW2API{
 	 *
 	 */
 	public function update_maps(){
-		global $db;
-		$maps = $db->prepared_query('SELECT `continent_id`, `floor_id`, `region_id`, `map_id` FROM `gw2_maps`');
+		$maps = $this->db->prepared_query('SELECT `continent_id`, `floor_id`, `region_id`, `map_id` FROM `gw2_maps`');
 
 		$urls = [];
 		foreach($maps as $map){
@@ -137,7 +136,6 @@ class GW2Maps extends GW2API{
 		}
 
 		$this->multi_request($urls, $this->api_base.'v2/continents/', function ($data, $info){
-			global $db;
 			$path = parse_url($info['url'], PHP_URL_PATH);
 			$path_hash = sha1($path);
 
@@ -169,7 +167,7 @@ class GW2Maps extends GW2API{
 						json_encode($this->temp_data[$path_hash]['fr']),
 					], explode('/', str_replace(['/v2/continents/', 'floors/', 'regions/', 'maps/'], '', $path)));
 
-					$db->prepared_query($sql, $values);
+					$this->db->prepared_query($sql, $values);
 					$this->log('Map #'.$this->temp_data[$path_hash]['en']['id'].' updated: '.$this->temp_data[$path_hash]['en']['name']);
 					unset($this->temp_data[$path_hash]);
 				}
