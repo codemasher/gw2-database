@@ -24,14 +24,6 @@ class GW2API{
 	public $api_base = 'https://api.guildwars2.com/';
 
 	/**
-	 * GW2 API version to use
-	 *
-	 * todo: questionable, changes are too marginal to keep the unused code, just use the API base
-	 * @var int
-	 */
-	public $api_version = 1;
-
-	/**
 	 * Language used for translations. This does not affect request()
 	 * Possible values: de, en, es, fr, also ko and zh with API v2 (maybe).
 	 * @var string
@@ -109,11 +101,29 @@ class GW2API{
 		'outfit' => 12
 	];
 
+	const Armorsmith = 0x1;
+	const Artificer = 0x2;
+	const Chef = 0x4;
+	const Huntsman = 0x8;
+	const Jeweler = 0x10;
+	const Leatherworker = 0x20;
+	const Tailor = 0x40;
+	const Weaponsmith = 0x80;
+
+	protected $db;
+	protected $conf;
+	public function __construct(){
+		global $db, $conf;
+		$this->db = $db;
+		$this->conf = $conf;
+	}
+
 	// used in $this->multi_request()
 	protected $temp_data = [];
 	protected $temp_failed = [];
 	public function __destruct(){
-		print_r($this->temp_failed);
+#		print_r($this->temp_failed);
+#		var_dump($this);
 	}
 
 	/**
@@ -303,6 +313,30 @@ class GW2API{
 
 		// invalid chatlink
 		return false;
+	}
+
+	/**
+	 * @param array $flags
+	 *
+	 * @return int
+	 */
+	public function set_bitflag(array $flags){
+		$val = 0;
+		foreach($flags as $flag){
+			$val = $val|constant('self::'.$flag);
+		}
+
+		return $val;
+	}
+
+	/**
+	 * @param int $flag
+	 * @param int $val
+	 *
+	 * @return bool
+	 */
+	public function get_bitflag($flag, $val){
+		return ($val&$flag) === $flag;
 	}
 
 }
