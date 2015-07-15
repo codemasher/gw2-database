@@ -188,7 +188,7 @@ class GW2API{
 
 		curl_close($ch);
 
-		if($info['http_code'] === 200){
+		if(in_array($info['http_code'], [200, 206], true)){
 			$this->api_response = json_decode($data, true);
 			return true;
 		}
