@@ -57,39 +57,6 @@ class GW2Items extends GW2API{
 	}
 
 	/**
-	 * @param array $infix_upgrade
-	 *
-	 * @return bool|int
-	 *
-	 * @link http://wiki.guildwars2.com/wiki/Item_nomenclature
-	 */
-	private function attribute_combination(array $infix_upgrade){
-		$att = array_column($infix_upgrade['attributes'], 'attribute');
-		if(isset($infix_upgrade['buff']['skill_id'])){
-			switch((int)$infix_upgrade['buff']['skill_id']){
-				// Condition Duration is only available as major attribute, so put it on top
-				case 16631:
-					array_unshift($att, 'ConditionDuration');
-					break;
-				// Boon duration is only a minor attribute, so add it to the end
-				case 16517:
-					$att[] = 'BoonDuration';
-					break;
-			}
-		}
-
-		$key = array_search($att, array_column($this->combinations, 'attributes', 'id'));
-		if(count($att) === 7){
-			return 52; // celestial todo: HARDCODE ALL THE THINGS!
-		}
-		else if(isset($this->combinations[$key])){
-			return $this->combinations[$key]['id'];
-		}
-
-		return false;
-	}
-
-	/**
 	 *
 	 */
 	public function item_refresh(){
@@ -158,6 +125,7 @@ class GW2Items extends GW2API{
 							unset($this->temp_data[$id]);
 						}
 						$this->db->multi_insert($sql, $values);
+						unset($response, $values);
 					}
 				}
 				else{
@@ -216,6 +184,39 @@ class GW2Items extends GW2API{
 			time(),
 			$data['en']['id'],
 		];
+	}
+
+	/**
+	 * @param array $infix_upgrade
+	 *
+	 * @return bool|int
+	 *
+	 * @link http://wiki.guildwars2.com/wiki/Item_nomenclature
+	 */
+	private function attribute_combination(array $infix_upgrade){
+		$att = array_column($infix_upgrade['attributes'], 'attribute');
+		if(isset($infix_upgrade['buff']['skill_id'])){
+			switch((int)$infix_upgrade['buff']['skill_id']){
+				// Condition Duration is only available as major attribute, so put it on top
+				case 16631:
+					array_unshift($att, 'ConditionDuration');
+					break;
+				// Boon duration is only a minor attribute, so add it to the end
+				case 16517:
+					$att[] = 'BoonDuration';
+					break;
+			}
+		}
+
+		$key = array_search($att, array_column($this->combinations, 'attributes', 'id'));
+		if(count($att) === 7){
+			return 52; // celestial todo: HARDCODE ALL THE THINGS!
+		}
+		else if(isset($this->combinations[$key])){
+			return $this->combinations[$key]['id'];
+		}
+
+		return false;
 	}
 
 	/**
@@ -285,6 +286,102 @@ class GW2Items extends GW2API{
 
 					$this->db->multi_insert($sql, $values);
 					unset($response, $values);
+				}
+				else{
+					print_r([$response, $info]);
+					$this->temp_failed[] = $info['url'];
+				}
+			});
+		}
+	}
+
+	/**
+	 *
+	 */
+	public function skin_refresh(){
+		$this->request('v2/skins');
+		$data = $this->api_response;
+		$values = [];
+		$time = time();
+		foreach($data as $id){
+			$values[] = [$id, $time];
+		}
+		$this->db->multi_insert('INSERT IGNORE INTO '.TABLE_SKINS.' (`skin_id`, `added`) VALUES (?,?)', $values);
+		$this->log('Skin database refresh done. '.count($this->api_response).' items in skins.json.');
+	}
+
+	/**
+	 * @param bool $full_update
+	 */
+	public function skin_update($full_update = false){
+		$skins = $this->db->prepared_query('SELECT `skin_id` FROM '.TABLE_SKINS.' '.($full_update ? '' : ' WHERE `updated` = 0'));
+		if(is_array($skins)){
+			$ids = array_chunk(array_column($skins, 'skin_id'), $this->chunksize);
+
+			$urls = [];
+			// ...now loop through the chunks
+			foreach($ids as $chunk){
+				$chunk = implode(',', $chunk);
+				// ...and create the request for each chunk and language
+				foreach($this->api_languages as $lang){
+					$urls[] = http_build_query(['lang' => $lang, 'ids' => $chunk]);
+				}
+			}
+
+			$this->multi_request($urls, $this->api_base.'v2/skins?', function ($response, $info){
+				if(in_array($info['http_code'], [200, 206], true)){
+					$response = json_decode($response, true);
+					parse_str(parse_url($info['url'], PHP_URL_QUERY), $params);
+
+					foreach($response as $item){
+						$this->temp_data[$item['id']][$params['lang']] = $item;
+					}
+
+					$ids = explode(',', $params['ids']);
+					if(count($this->temp_data[$ids[0]]) === count($this->api_languages)){
+
+						$values = [];
+						foreach($ids as $id){
+							$file_id = explode('/', str_replace(['https://render.guildwars2.com/file/', '.png'], '', $this->temp_data[$id]['en']['icon']));
+
+							$sub = '';
+							if(isset($this->temp_data[$id]['en']['details']['weight_class'])){
+								$sub = $this->temp_data[$id]['en']['details']['weight_class'];
+							}
+							else if(isset($this->temp_data[$id]['en']['details']['damage_type'])){
+								$sub = $this->temp_data[$id]['en']['details']['damage_type'];
+							}
+
+							$values[] = [
+								$file_id[0],
+								$file_id[1],
+								$this->temp_data[$id]['en']['type'],
+								@$this->temp_data[$id]['en']['details']['type'],
+								$sub,
+								$this->temp_data[$id]['de']['name'],
+								$this->temp_data[$id]['en']['name'],
+								$this->temp_data[$id]['es']['name'],
+								$this->temp_data[$id]['fr']['name'],
+								json_encode($this->temp_data[$id]['de']),
+								json_encode($this->temp_data[$id]['en']),
+								json_encode($this->temp_data[$id]['es']),
+								json_encode($this->temp_data[$id]['fr']),
+								1,
+								time(),
+								$id,
+							];
+
+							$this->log('Updated skin #'.$id);
+							unset($this->temp_data[$id]);
+						}
+						$sql = 'UPDATE '.TABLE_SKINS.' SET `signature`= ?, `file_id`= ?, `type`= ?, `subtype`= ?,
+									`properties` = ?, `name_de`= ?, `name_en`= ?, `name_es`= ?, `name_fr`= ?,
+									`data_de`= ?, `data_en`= ?, `data_es`= ?, `data_fr`= ?, `updated`= ?, `update_time`= ?
+									WHERE `skin_id` = ?';
+
+						$this->db->multi_insert($sql, $values);
+						unset($response, $values);
+					}
 				}
 				else{
 					print_r([$response, $info]);
