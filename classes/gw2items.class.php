@@ -385,7 +385,7 @@ class GW2Items extends GW2API{
 						if(!empty($old) && diff($old, json_encode($skin))){
 							$changes[] = [
 								$skin['id'],
-								'item',
+								'skin',
 								$params['lang'],
 								$this->skins[$skin['id']]['update_time'],
 								$old,
