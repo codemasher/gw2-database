@@ -24,6 +24,10 @@ class GW2Items extends GW2API{
 	 */
 	public $combinations = [];
 
+	private $skins = [];
+	private $items = [];
+	private $recipes = [];
+
 	/**
 	 *
 	 */
@@ -71,21 +75,25 @@ class GW2Items extends GW2API{
 	 * @param bool $full_update
 	 */
 	public function item_update($full_update = false){
+		// going to blow up the memory here...
+		$this->items = $this->db->simple_query(
+			'SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `update_time`
+				FROM '.TABLE_ITEMS.(
+			$full_update
+				? ''
+				: ' WHERE `updated` = 0'
+			), true, 'id');
 
-		// todo: WHERE update_time < ... ?
-		$items = $this->db->prepared_query('SELECT `id` FROM '.TABLE_ITEMS.($full_update ? '' : ' WHERE `updated` = 0'));
-
-		if(is_array($items)){
+		if(is_array($this->items)){
 			// fetch all the IDs into a one dimensional array and put them into chunks...
-			$ids = array_chunk(array_column($items, 'id'), $this->chunksize);
+			$ids = array_chunk(array_keys($this->items), $this->chunksize);
 
 			$urls = [];
 			// ...now loop through the chunks
 			foreach($ids as $chunk){
-				$chunk = implode(',', $chunk);
 				// ...and create the request for each chunk and language
 				foreach($this->api_languages as $lang){
-					$urls[] = http_build_query(['lang' => $lang, 'ids' => $chunk]);
+					$urls[] = http_build_query(['lang' => $lang, 'ids' => implode(',', $chunk)]);
 				}
 			}
 
@@ -95,32 +103,47 @@ class GW2Items extends GW2API{
 
 				if(in_array($info['http_code'], [200, 206], true)){
 					$response = json_decode($response, true);
+					$changes = [];
 
 					// push the data for each item to the temp array
 					foreach($response as $item){
 						$this->temp_data[$item['id']][$params['lang']] = $item;
+
+						$old = @$this->items[$item['id']]['data_'.$params['lang']];
+						if(!empty($old) && diff($old, json_encode($item))){
+							$changes[] = [
+								$item['id'],
+								'item',
+								$params['lang'],
+								$this->items[$item['id']]['update_time'],
+								$old,
+							];
+						}
+						unset($this->items[$item['id']]);
 					}
 
-					$ids = explode(',', $params['ids']);
+					$sql = 'INSERT INTO `gw2_diff` (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
+					$this->db->multi_insert($sql, $changes);
 
 					// check if we got the data for all languages
+					$ids = explode(',', $params['ids']);
 					if(count($this->temp_data[$ids[0]]) === count($this->api_languages)){
-
-						$values = [];
-						$sql = 'UPDATE '.TABLE_ITEMS.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
-					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_combination` = ?, `unlock_id` = ?,
-					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `data_de` = ?, `data_en` = ?, `data_es` = ?,
-					`data_fr` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
-
 						// loop through the chunk's item ids and process the data
+						$values = [];
 						foreach($ids as $id){
 							$values[] = $this->parse_itemdata($id);
 
 							// remove the processed item from the temp array to not blow up the memory
 							unset($this->temp_data[$id]);
 						}
+
+						$sql = 'UPDATE '.TABLE_ITEMS.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
+					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_combination` = ?, `unlock_id` = ?,
+					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `data_de` = ?, `data_en` = ?, `data_es` = ?,
+					`data_fr` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
+
 						$this->db->multi_insert($sql, $values);
-						unset($response, $values);
+						unset($response, $values, $changes);
 					}
 				}
 				else{
@@ -233,11 +256,17 @@ class GW2Items extends GW2API{
 	 * @param bool $full_update
 	 */
 	public function recipe_update($full_update = false){
-		$recipes = $this->db->prepared_query('SELECT `recipe_id` FROM '.TABLE_RECIPES.($full_update ? '' : ' WHERE `updated` = 0'));
+		$this->recipes = $this->db->simple_query(
+			'SELECT `recipe_id`, `data`, `update_time`
+				FROM '.TABLE_RECIPES.(
+			$full_update
+				? ''
+				: ' WHERE `updated` = 0'
+			), true, 'recipe_id');
 
-		if(is_array($recipes)){
+		if(is_array($this->recipes)){
 
-			$ids = array_chunk(array_column($recipes, 'recipe_id'), $this->chunksize);
+			$ids = array_chunk(array_keys($this->recipes), $this->chunksize);
 			$urls = [];
 			foreach($ids as $chunk){
 				$urls[] = http_build_query(['ids' => implode(',', $chunk)]);
@@ -249,7 +278,9 @@ class GW2Items extends GW2API{
 				if(in_array($info['http_code'], [200, 206], true)){
 					$response = json_decode($response, true);
 					$values = [];
+					$changes = [];
 					foreach($response as $recipe){
+						$new = json_encode($recipe);
 						$values[] = [
 							$recipe['output_item_id'],
 							$recipe['output_item_count'],
@@ -265,13 +296,27 @@ class GW2Items extends GW2API{
 							@$recipe['ingredients'][2]['count'],
 							@$recipe['ingredients'][3]['item_id'],
 							@$recipe['ingredients'][3]['count'],
-							$data = json_encode($recipe),
+							$new,
 							1,
 							time(),
 							$recipe['id'],
 						];
+
+						$old = @$this->recipes[$recipe['id']]['data'];
+						if(!empty($old) && diff($old, $new)){
+							$changes[] = [
+								$recipe['id'],
+								'recipe',
+								$this->recipes[$recipe['id']]['update_time'],
+								$old,
+							];
+						}
+						unset($this->recipes[$recipe['id']]);
 						$this->log('Updated recipe #'.$recipe['id']);
 					}
+
+					$sql = 'INSERT INTO `gw2_diff` (`db_id`, `type`, `date`, `data`) VALUES (?,?,?,?)';
+					$this->db->multi_insert($sql, $changes);
 
 					$sql = 'UPDATE '.TABLE_RECIPES.' SET `output_id` = ?, `output_count` = ?, `disciplines`= ?,
 								`rating` = ?, `type` = ?, `from_item` = ?, `ing_id_1` = ?, `ing_count_1` = ?,
@@ -280,7 +325,7 @@ class GW2Items extends GW2API{
 								WHERE `recipe_id` = ?';
 
 					$this->db->multi_insert($sql, $values);
-					unset($response, $values);
+					unset($response, $values, $changes);
 				}
 				else{
 					print_r([$response, $info]);
@@ -309,17 +354,21 @@ class GW2Items extends GW2API{
 	 * @param bool $full_update
 	 */
 	public function skin_update($full_update = false){
-		$skins = $this->db->prepared_query('SELECT `skin_id` FROM '.TABLE_SKINS.' '.($full_update ? '' : ' WHERE `updated` = 0'));
-		if(is_array($skins)){
-			$ids = array_chunk(array_column($skins, 'skin_id'), $this->chunksize);
+		$this->skins = $this->db->simple_query(
+			'SELECT `skin_id`, `data_de`, `data_en`, `data_es`, `data_fr`, `update_time`
+				FROM '.TABLE_SKINS.' '.(
+			$full_update
+				? ''
+				: ' WHERE `updated` = 0'
+			), true, 'skin_id');
+
+		if(is_array($this->skins)){
+			$ids = array_chunk(array_keys($this->skins), $this->chunksize);
 
 			$urls = [];
-			// ...now loop through the chunks
 			foreach($ids as $chunk){
-				$chunk = implode(',', $chunk);
-				// ...and create the request for each chunk and language
 				foreach($this->api_languages as $lang){
-					$urls[] = http_build_query(['lang' => $lang, 'ids' => $chunk]);
+					$urls[] = http_build_query(['lang' => $lang, 'ids' => implode(',', $chunk)]);
 				}
 			}
 
@@ -327,10 +376,27 @@ class GW2Items extends GW2API{
 				if(in_array($info['http_code'], [200, 206], true)){
 					$response = json_decode($response, true);
 					parse_str(parse_url($info['url'], PHP_URL_QUERY), $params);
+					$changes = [];
 
-					foreach($response as $item){
-						$this->temp_data[$item['id']][$params['lang']] = $item;
+					foreach($response as $skin){
+						$this->temp_data[$skin['id']][$params['lang']] = $skin;
+
+						$old = @$this->skins[$skin['id']]['data_'.$params['lang']];
+						if(!empty($old) && diff($old, json_encode($skin))){
+							$changes[] = [
+								$skin['id'],
+								'item',
+								$params['lang'],
+								$this->skins[$skin['id']]['update_time'],
+								$old,
+							];
+						}
+						unset($this->skins[$skin['id']]);
 					}
+
+					$sql = 'INSERT INTO `gw2_diff` (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
+					$this->db->multi_insert($sql, $changes);
+					unset($changes);
 
 					$ids = explode(',', $params['ids']);
 					if(count($this->temp_data[$ids[0]]) === count($this->api_languages)){

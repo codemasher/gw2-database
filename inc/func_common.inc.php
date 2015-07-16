@@ -154,10 +154,21 @@ function get_bitflag($flag, $val){
  */
 function write_log($line, $logfile, $dateformat = '[Y-m-d H:i:s]', $echo = false){
 	$line = date($dateformat).' '.$line.PHP_EOL;
-	$logfile = fopen(date('Y-m-d').'-'.$logfile, 'a');
+	$logfile = fopen(BASEDIR.'logs/'.date('Y-m-d').'-'.$logfile, 'a');
 	fwrite($logfile, $line);
 	fclose($logfile);
 	if($echo){
 		echo $line;
 	}
 }
+
+/**
+ * @param string $old
+ * @param string $new
+ *
+ * @return bool
+ */
+function diff($old, $new){
+	return sha1($old) !== sha1($new);
+}
+
