@@ -50,15 +50,15 @@ class GW2Maps extends GW2API{
 			}
 		});
 
-		$this->db->simple_query('TRUNCATE TABLE `gw2_floors`');
-		$this->db->multi_insert('INSERT INTO `gw2_floors` (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)', $this->temp_data);
+		$this->db->simple_query('TRUNCATE TABLE '.TABLE_FLOORS);
+		$this->db->multi_insert('INSERT INTO '.TABLE_FLOORS.' (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)', $this->temp_data);
 	}
 
 	/**
 	 *
 	 */
 	public function refresh_regions_maps(){
-		$floors = $this->db->simple_query('SELECT * FROM `gw2_floors`');
+		$floors = $this->db->simple_query('SELECT * FROM '.TABLE_FLOORS);
 		$urls_m = [];
 		$urls_r = [];
 		foreach($floors as $floor){
@@ -74,8 +74,8 @@ class GW2Maps extends GW2API{
 			}
 		}
 
-		$this->db->simple_query('TRUNCATE TABLE `gw2_regions`');
-		$this->db->simple_query('TRUNCATE TABLE `gw2_maps`');
+		$this->db->simple_query('TRUNCATE TABLE '.TABLE_REGIONS);
+		$this->db->simple_query('TRUNCATE TABLE '.TABLE_MAPS);
 
 		$this->multi_request($urls_r, $this->api_base.'v2/continents/', function ($response, $info){
 			if($info['http_code'] === 200){
@@ -94,11 +94,11 @@ class GW2Maps extends GW2API{
 						$this->log('Adding map #'.$map.', continent: '.$location[0].', floor: '.$location[1].', region: '.$location[2]);
 					}
 
-					$sql = 'INSERT INTO `gw2_maps` (`map_id`, `continent_id`, `floor_id`, `region_id`) VALUES (?,?,?,?)';
+					$sql = 'INSERT INTO '.TABLE_MAPS.' (`map_id`, `continent_id`, `floor_id`, `region_id`) VALUES (?,?,?,?)';
 					$this->db->multi_insert($sql, $maps);
 
 
-					$sql = 'INSERT INTO `gw2_regions` (`continent_id`, `floor_id`, `region_id`,
+					$sql = 'INSERT INTO '.TABLE_REGIONS.' (`continent_id`, `floor_id`, `region_id`,
 								`label_coord`, `maps`, `name_de`, `name_en`, `name_es`, `name_fr`)
 								VALUES(?,?,?,?,?,?,?,?,?)';
 
@@ -126,7 +126,7 @@ class GW2Maps extends GW2API{
 	 *
 	 */
 	public function update_maps(){
-		$maps = $this->db->prepared_query('SELECT `continent_id`, `floor_id`, `region_id`, `map_id` FROM `gw2_maps`');
+		$maps = $this->db->prepared_query('SELECT `continent_id`, `floor_id`, `region_id`, `map_id` FROM '.TABLE_MAPS);
 
 		$urls = [];
 		foreach($maps as $map){
@@ -143,7 +143,7 @@ class GW2Maps extends GW2API{
 				parse_str(parse_url($info['url'], PHP_URL_QUERY), $params);
 				$this->temp_data[$path_hash][$params['lang']] = json_decode($data, true);
 				if(count($this->temp_data[$path_hash]) === count($this->api_languages)){
-					$sql = 'UPDATE `gw2_maps` SET `default_floor` = ?, `map_rect` = ?, `continent_rect` = ?,
+					$sql = 'UPDATE '.TABLE_MAPS.' SET `default_floor` = ?, `map_rect` = ?, `continent_rect` = ?,
 									`min_level` = ?, `max_level` = ?, `name_de` = ?, `data_de` = ?,  `name_en` = ?,
 									`data_en` = ?,  `name_es` = ?, `data_es` = ?,  `name_fr` = ?, `data_fr` = ?
 								WHERE `continent_id` = ?
