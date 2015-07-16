@@ -15,11 +15,6 @@
 class GW2Items extends GW2API{
 
 	/**
-	 * @var int
-	 */
-	public $chunksize = 50;
-
-	/**
 	 * @var array
 	 */
 	public $attributes = [];

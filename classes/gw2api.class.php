@@ -101,6 +101,11 @@ class GW2API{
 		'outfit' => 12
 	];
 
+	/**
+	 * @var int
+	 */
+	public $chunksize = 50;
+
 	const Armorsmith = 0x1;
 	const Artificer = 0x2;
 	const Chef = 0x4;
