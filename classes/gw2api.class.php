@@ -275,12 +275,12 @@ class GW2API{
 
 			if(isset($chatlink['skin']) && !empty($chatlink['skin'])){
 				$ids[] = $chatlink['skin'];
-				$upgrade |= self::UPGRADE_SKIN;
+				$upgrade = $this->set_bitflag(['UPGRADE_SKIN'], $upgrade);
 			}
 
 			if(isset($chatlink['upgrades']) && is_array($chatlink['upgrades']) && !empty($chatlink['upgrades'])){
 				$ids = array_merge($ids, $chatlink['upgrades']);
-				$upgrade |= constant('self::UPGRADE_'.count($chatlink['upgrades']));
+				$upgrade = $this->set_bitflag(['UPGRADE_'.count($chatlink['upgrades'])], $upgrade);
 			}
 		}
 
@@ -301,7 +301,7 @@ class GW2API{
 			return chr($ascii);
 		}, $data);
 
-		return '[&'.base64_encode(implode('', $data)).']';
+		return '[&'.base64_encode(implode($data)).']';
 	}
 
 	/**
@@ -327,16 +327,13 @@ class GW2API{
 			}
 
 			$out['type'] = array_shift($octets);
-			$upgrades = 0;
+			$skinned = false;
 			if($out['type'] === self::CHATLINK_ITEM){
 				$out['count'] = array_shift($octets);
-				$upgrades = $octets[3];
+				$skinned = $this->get_bitflag(self::UPGRADE_SKIN, $octets[3]);
 			}
 
-			$octets = array_chunk($octets, 4);
-			$skinned = ($upgrades&self::UPGRADE_SKIN) === self::UPGRADE_SKIN;
-
-			foreach($octets as $k => $chunk){
+			foreach(array_chunk($octets, 4) as $k => $chunk){
 				if(count($chunk) === 4){
 					$id = $chunk[2] << 16|$chunk[1] << 8|$chunk[0];
 					if($k === 0){
@@ -363,10 +360,11 @@ class GW2API{
 	/**
 	 * @param array $flags
 	 *
+	 * @param int   $val
+	 *
 	 * @return int
 	 */
-	public function set_bitflag(array $flags){
-		$val = 0;
+	public function set_bitflag(array $flags, $val = 0){
 		foreach($flags as $flag){
 			$val = $val|constant('self::'.$flag);
 		}
