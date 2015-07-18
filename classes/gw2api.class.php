@@ -87,33 +87,35 @@ class GW2API{
 	public $log_to_cli = true;
 
 	/**
-	 * @var array
-	 */
-	private $chatlink_types = [
-		'coin'   => 1,
-		'item'   => 2,
-		'text'   => 3, // http://wiki.guildwars2.com/wiki/Chat_link_format/0x03_codes
-		'map'    => 4,
-		'skill'  => 7,
-		'trait'  => 8,
-		'recipe' => 10,
-		'skin'   => 11,
-		'outfit' => 12
-	];
-
-	/**
 	 * @var int
 	 */
 	public $chunksize = 50;
 
-	const Armorsmith = 0x1;
-	const Artificer = 0x2;
-	const Chef = 0x4;
-	const Huntsman = 0x8;
-	const Jeweler = 0x10;
-	const Leatherworker = 0x20;
-	const Tailor = 0x40;
-	const Weaponsmith = 0x80;
+	const CRAFT_ARMORSMITH = 0x1;
+	const CRAFT_ARTIFICER = 0x2;
+	const CRAFT_CHEF = 0x4;
+	const CRAFT_HUNTSMAN = 0x8;
+	const CRAFT_JEWELER = 0x10;
+	const CRAFT_LEATHERWORKER = 0x20;
+	const CRAFT_TAILOR = 0x40;
+	const CRAFT_WEAPONSMITH = 0x80;
+
+	const CHATLINK_COIN = 0x01;
+	const CHATLINK_ITEM = 0x02;
+	const CHATLINK_TEXT = 0x03;
+	const CHATLINK_MAP = 0x04;
+	const CHATLINK_SKILL = 0x07;
+	const CHATLINK_TRAIT = 0x08;
+	const CHATLINK_RECIPE = 0x0A;
+	const CHATLINK_WARDROBE = 0x0B;
+	const CHATLINK_OUTFIT = 0x0C;
+
+	const UPGRADE_NONE = 0x00;
+	const UPGRADE_1 = 0x40;
+	const UPGRADE_2 = 0x60;
+	const UPGRADE_SKIN = 0x80;
+	const UPGRADE_SKIN_1 = 0xC0;
+	const UPGRADE_SKIN_2 = 0xE0;
 
 	protected $db;
 	protected $conf;
@@ -246,48 +248,64 @@ class GW2API{
 	public function recalc_coords(array $continent_rect, array $map_rect, array $point){
 		// don't look at it. really! it will melt your brain and make your eyes bleed!
 		return [
-			round($continent_rect[0][0] + ($continent_rect[1][0] - $continent_rect[0][0]) * ($point[0] - $map_rect[0][0]) / ($map_rect[1][0] - $map_rect[0][0])),
-			round($continent_rect[0][1] + ($continent_rect[1][1] - $continent_rect[0][1]) * (1 - ($point[1] - $map_rect[0][1]) / ($map_rect[1][1] - $map_rect[0][1])))
+			round($continent_rect[0][0]+($continent_rect[1][0]-$continent_rect[0][0])*($point[0]-$map_rect[0][0])/($map_rect[1][0]-$map_rect[0][0])),
+			round($continent_rect[0][1]+($continent_rect[1][1]-$continent_rect[0][1])*(1-($point[1]-$map_rect[0][1])/($map_rect[1][1]-$map_rect[0][1])))
 		];
 	}
 
 	/**
-	 * @param string $type
-	 * @param int    $id
+	 *
+	 * @param array $chatlink
 	 *
 	 * @return string
-	 *
 	 * @author {@link https://twitter.com/poke poke}
-	 * @link http://wiki.guildwars2.com/wiki/Widget:Game_link
+	 * @link   http://wiki.guildwars2.com/wiki/Widget:Game_link
 	 */
-	public function chatlink_encode($type, $id){
+	public function chatlink_encode(array $chatlink){
 		$data = [];
-		while ($id > 0) {
-			$data[] = $id & 255;
-			$id = $id >> 8;
+		$ids = [];
+
+		$data[] = $chatlink['type'];
+		$ids[] = $chatlink['id'];
+
+		$upgrade = self::UPGRADE_NONE;
+
+		if($chatlink['type'] === self::CHATLINK_ITEM){
+			$data[] = isset($chatlink['count']) && !empty($chatlink['count']) ? $chatlink['count'] : 1;
+
+			if(isset($chatlink['skin']) && !empty($chatlink['skin'])){
+				$ids[] = $chatlink['skin'];
+				$upgrade |= self::UPGRADE_SKIN;
+			}
+
+			if(isset($chatlink['upgrades']) && is_array($chatlink['upgrades']) && !empty($chatlink['upgrades'])){
+				$ids = array_merge($ids, $chatlink['upgrades']);
+				$upgrade |= constant('self::UPGRADE_'.count($chatlink['upgrades']));
+			}
 		}
 
-		while (count($data) < 4 || count($data) % 2 !== 0) {
-			$data[] = 0;
+		foreach($ids as $k => $id){
+			$octets = [];
+			while($id > 0){
+				$octets[] = $id&255;
+				$id = $id >> 8;
+			}
+			while(count($octets) < 3){
+				$octets[] = 0;
+			}
+			$octets[] = $k === 0 ? $upgrade : 0;
+			$data = array_merge($data, $octets);
 		}
 
-		// add quantity if we are encoding an item
-		if ($type === 2) {
-			array_unshift($data, 1);
-		}
-		array_unshift($data, $this->chatlink_types[$type]);
+		$data = array_map(function ($ascii){
+			return chr($ascii);
+		}, $data);
 
-		// encode data
-		$chatlink = '';
-		for ($i = 0; $i < count($data); $i++) {
-			$chatlink .= chr($data[$i]);
-        }
-
-		return '[&'.base64_encode($chatlink).']';
+		return '[&'.base64_encode(implode('', $data)).']';
 	}
 
 	/**
-	 * @param $chatlink
+	 * @param string $chatlink
 	 *
 	 * @return array|bool
 	 *
@@ -296,24 +314,46 @@ class GW2API{
 	 */
 	public function chatlink_decode($chatlink){
 		if(preg_match('/\[&([a-z\d+\/]+=*)\]/i', $chatlink)){
+			$out = [];
 			// decode base64 and read octets
-			$data = [];
+			$octets = [];
 			foreach(str_split(base64_decode($chatlink)) as $char){
-				$data[] = ord($char);
+				$octets[] = ord($char);
 			}
 
-			if(!in_array($data[0], $this->chatlink_types)){
-				// invalid type
+			if(count($octets) < 5){
+				// invalid code
 				return false;
 			}
 
-			// items have the quantity first, so set an offset
-			$o = $data[0] === 2 ? 1 : 0;
+			$out['type'] = array_shift($octets);
+			$upgrades = 0;
+			if($out['type'] === self::CHATLINK_ITEM){
+				$out['count'] = array_shift($octets);
+				$upgrades = $octets[3];
+			}
 
-			// get id
-			$id = $data[3 + $o] << 16 | $data[2 + $o] << 8 | $data[1 + $o];
+			$octets = array_chunk($octets, 4);
+			$skinned = ($upgrades&self::UPGRADE_SKIN) === self::UPGRADE_SKIN;
 
-			return [$id, array_keys($this->chatlink_types, $data[0])[0]];
+			foreach($octets as $k => $chunk){
+				if(count($chunk) === 4){
+					$id = $chunk[2] << 16|$chunk[1] << 8|$chunk[0];
+					if($k === 0){
+						$out['id'] = $id;
+					}
+					if($out['type'] === self::CHATLINK_ITEM){
+						if($k === 1 && $skinned){
+							$out['skin'] = $id;
+						}
+						if(($k > 0 && $k < 3 && !$skinned) || ($k > 1 && $k < 4 && $skinned)){
+							$out['upgrades'][] = $id;
+						}
+					}
+				}
+			}
+
+			return $out;
 		}
 
 		// invalid chatlink

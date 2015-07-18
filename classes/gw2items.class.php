@@ -281,10 +281,15 @@ class GW2Items extends GW2API{
 					$changes = [];
 					foreach($response as $recipe){
 						$new = json_encode($recipe);
+
+						$recipe['disciplines'] = array_map(function($value){
+							return 'CRAFT_'.strtoupper($value);
+						}, $recipe['disciplines']);
+
 						$values[] = [
 							$recipe['output_item_id'],
 							$recipe['output_item_count'],
-							$this->set_bitflag($recipe['disciplines']),//disciplines
+							$this->set_bitflag($recipe['disciplines']),
 							$recipe['min_rating'],
 							$recipe['type'],
 							is_array($recipe['flags']) && in_array('LearnedFromItem', $recipe['flags']),
