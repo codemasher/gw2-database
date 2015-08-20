@@ -107,7 +107,7 @@ class GW2API{
 	const CHATLINK_SKILL = 0x07;
 	const CHATLINK_TRAIT = 0x08;
 	const CHATLINK_RECIPE = 0x0A;
-	const CHATLINK_WARDROBE = 0x0B;
+	const CHATLINK_SKIN = 0x0B;
 	const CHATLINK_OUTFIT = 0x0C;
 
 	const UPGRADE_NONE = 0x00;
@@ -262,12 +262,8 @@ class GW2API{
 	 * @link   http://wiki.guildwars2.com/wiki/Widget:Game_link
 	 */
 	public function chatlink_encode(array $chatlink){
-		$data = [];
-		$ids = [];
-
-		$data[] = $chatlink['type'];
-		$ids[] = $chatlink['id'];
-
+		$data = [$chatlink['type']];
+		$ids = [$chatlink['id']];
 		$upgrade = self::UPGRADE_NONE;
 
 		if($chatlink['type'] === self::CHATLINK_ITEM){
