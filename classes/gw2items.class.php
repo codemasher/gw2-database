@@ -105,24 +105,25 @@ class GW2Items extends GW2API{
 					$response = json_decode($response, true);
 					$changes = [];
 
-					// push the data for each item to the temp array
+					// push the data for each item to the temp array and create a diff
 					foreach($response as $item){
+						$item = array_sort_recursive($item);
 						$this->temp_data[$item['id']][$params['lang']] = $item;
-
-						$old = @$this->items[$item['id']]['data_'.$params['lang']];
-						if(!empty($old) && diff($old, json_encode($item))){
+						$old = json_decode(@$this->items[$item['id']]['data_'.$params['lang']], true);
+						$old = is_array($old) ? array_sort_recursive($old) : [];
+						if(!empty($old) && !empty(array_diff_assoc_recursive($old, $item, true))){
 							$changes[] = [
 								$item['id'],
 								'item',
 								$params['lang'],
 								$this->items[$item['id']]['update_time'],
-								$old,
+								json_encode($old),
 							];
 						}
 						unset($this->items[$item['id']]);
 					}
 
-					$sql = 'INSERT INTO `gw2_diff` (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
+					$sql = 'INSERT INTO '.TABLE_DIFF.' (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
 					$this->db->multi_insert($sql, $changes);
 
 					// check if we got the data for all languages
@@ -132,7 +133,6 @@ class GW2Items extends GW2API{
 						$values = [];
 						foreach($ids as $id){
 							$values[] = $this->parse_itemdata($id);
-
 							// remove the processed item from the temp array to not blow up the memory
 							unset($this->temp_data[$id]);
 						}
@@ -280,7 +280,7 @@ class GW2Items extends GW2API{
 					$values = [];
 					$changes = [];
 					foreach($response as $recipe){
-						$new = json_encode($recipe);
+						$recipe = array_sort_recursive($recipe);
 
 						$recipe['disciplines'] = array_map(function($value){
 							return 'CRAFT_'.strtoupper($value);
@@ -301,26 +301,27 @@ class GW2Items extends GW2API{
 							@$recipe['ingredients'][2]['count'],
 							@$recipe['ingredients'][3]['item_id'],
 							@$recipe['ingredients'][3]['count'],
-							$new,
+							json_encode($recipe),
 							1,
 							time(),
 							$recipe['id'],
 						];
 
-						$old = @$this->recipes[$recipe['id']]['data'];
-						if(!empty($old) && diff($old, $new)){
+						$old = json_decode(@$this->recipes[$recipe['id']]['data'], true);
+						$old = is_array($old) ? array_sort_recursive($old) : [];
+						if(!empty($old) && !empty(array_diff_assoc_recursive($old, $recipe, true))){
 							$changes[] = [
 								$recipe['id'],
 								'recipe',
 								$this->recipes[$recipe['id']]['update_time'],
-								$old,
+								json_encode($old),
 							];
 						}
 						unset($this->recipes[$recipe['id']]);
 						$this->log('Updated recipe #'.$recipe['id']);
 					}
 
-					$sql = 'INSERT INTO `gw2_diff` (`db_id`, `type`, `date`, `data`) VALUES (?,?,?,?)';
+					$sql = 'INSERT INTO '.TABLE_DIFF.' (`db_id`, `type`, `date`, `data`) VALUES (?,?,?,?)';
 					$this->db->multi_insert($sql, $changes);
 
 					$sql = 'UPDATE '.TABLE_RECIPES.' SET `output_id` = ?, `output_count` = ?, `disciplines`= ?,
@@ -361,7 +362,7 @@ class GW2Items extends GW2API{
 	public function skin_update($full_update = false){
 		$this->skins = $this->db->simple_query(
 			'SELECT `skin_id`, `data_de`, `data_en`, `data_es`, `data_fr`, `update_time`
-				FROM '.TABLE_SKINS.' '.(
+				FROM '.TABLE_SKINS.(
 			$full_update
 				? ''
 				: ' WHERE `updated` = 0'
@@ -384,22 +385,23 @@ class GW2Items extends GW2API{
 					$changes = [];
 
 					foreach($response as $skin){
+						$skin = array_sort_recursive($skin);
 						$this->temp_data[$skin['id']][$params['lang']] = $skin;
-
-						$old = @$this->skins[$skin['id']]['data_'.$params['lang']];
-						if(!empty($old) && diff($old, json_encode($skin))){
+						$old = json_decode(@$this->skins[$skin['id']]['data_'.$params['lang']], true);
+						$old = is_array($old) ? array_sort_recursive($old) : [];
+						if(!empty($old) && !empty(array_diff_assoc_recursive($old, $skin, true))){
 							$changes[] = [
 								$skin['id'],
 								'skin',
 								$params['lang'],
 								$this->skins[$skin['id']]['update_time'],
-								$old,
+								json_encode($old),
 							];
 						}
 						unset($this->skins[$skin['id']]);
 					}
 
-					$sql = 'INSERT INTO `gw2_diff` (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
+					$sql = 'INSERT INTO '.TABLE_DIFF.' (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
 					$this->db->multi_insert($sql, $changes);
 					unset($changes);
 
