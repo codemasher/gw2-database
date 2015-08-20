@@ -3,7 +3,7 @@
  * MySQLi Wrapper class
  *
  * @filesource sql.class.php
- * @version    0.2.0
+ * @version    0.3.0
  * @link       https://github.com/codemasher/gw2-database/blob/master/classes/sql.class.php
  * @created    27.12.13
  *
@@ -11,7 +11,6 @@
  * @copyright  Copyright (c) 2014 Smiley <smiley@chillerlan.net>
  * @license    http://opensource.org/licenses/mit-license.php The MIT License (MIT)
  */
-
 
 /**
  * Class SQL
@@ -63,6 +62,24 @@ class SQL{
 	public $charset = 'utf8mb4';
 
 	/**
+	 * @var array
+	 */
+	public $affected_rows = [];
+
+	/**
+	 * List of errors that occured during operation
+	 * @var array
+	 * @link http://php.net/manual/mysqli-stmt.error-list.php
+	 */
+	public $errors = [];
+
+	/**
+	 * the insert id(s) of the last operation
+	 * @var array
+	 */
+	public $insert_ids = [];
+
+	/**
 	 * Use a secure connection?
 	 * @var bool
 	 */
@@ -72,6 +89,7 @@ class SQL{
 	 * The path name to the certificate authority file.
 	 * @var string
 	 * @link http://php.net/manual/mysqli.ssl-set.php
+	 * @link http://curl.haxx.se/ca/cacert.pem
 	 */
 	private $ssl_ca = null;
 
@@ -112,7 +130,16 @@ class SQL{
 		$this->mysqli = mysqli_init();
 	}
 
-
+	/**
+	 * @param string $host
+	 * @param string $user
+	 * @param string $password
+	 * @param string $database
+	 * @param string $port
+	 * @param string $socket
+	 *
+	 * @return $this
+	 */
 	public function set_credentials($host = null, $user = null, $password = null, $database = null, $port = null, $socket = null){
 		$this->host = $host;
 		$this->user = $user;
@@ -124,6 +151,16 @@ class SQL{
 		return $this;
 	}
 
+	/**
+	 * @param bool   $use_ssl
+	 * @param string $ssl_key
+	 * @param string $ssl_cert
+	 * @param string $ssl_ca
+	 * @param string $ssl_capath
+	 * @param string $ssl_cipher
+	 *
+	 * @return $this
+	 */
 	public function set_ssl($use_ssl = false, $ssl_key = null, $ssl_cert = null, $ssl_ca = null, $ssl_capath = null, $ssl_cipher = null){
 		$this->use_ssl = $use_ssl;
 		$this->ssl_key = $ssl_key;
@@ -134,6 +171,7 @@ class SQL{
 
 		return $this;
 	}
+
 	/**
 	 * Connect
 	 *
@@ -218,6 +256,17 @@ class SQL{
 	 */
 	public function simple_query($sql, $assoc = true, $index = ''){
 		if($result = $this->mysqli->query($sql)){
+			if(!empty($this->mysqli->error_list)){
+				$this->errors = [
+					'error' => $this->mysqli->error_list,
+					'sql' => $sql,
+					'assoc' => $assoc,
+					'index' => $index,
+				];
+			}
+			$this->affected_rows = $this->mysqli->affected_rows;
+			$this->insert_ids = !empty($this->mysqli->insert_id) ? $this->mysqli->insert_id : false;
+
 			// ok, we have a result with one or more rows, loop out the rows and output as array
 			if(!is_bool($result)){
 				$out = [];
@@ -305,6 +354,18 @@ class SQL{
 
 			$stmt->execute();
 			$metadata = $stmt->result_metadata();
+			$this->affected_rows = $stmt->affected_rows;
+			$this->insert_ids = !empty($stmt->insert_id) ? $stmt->insert_id : false;
+			if(!empty($stmt->error_list)){
+				$this->errors = [
+					'error' => $stmt->error_list,
+					'sql' => $sql,
+					'values' => $values,
+					'types' => $types,
+					'assoc' => $assoc,
+					'index' => $index,
+				];
+			}
 
 			// void result
 			if(!$metadata){
@@ -366,6 +427,9 @@ class SQL{
 	 * @return bool true query success, otherwise false
 	 */
 	public function multi_insert($sql, $values, $types = ''){
+		$affected_rows = [];
+		$errors = [];
+		$insert_ids = [];
 		// check if the array is multidimensional
 		if(is_array($values) && count($values) > 0 && is_array($values[0]) && count($values[0]) > 0){
 			$stmt = $this->mysqli->stmt_init();
@@ -375,13 +439,27 @@ class SQL{
 				$method = $reflection->getMethod('bind_param');
 				$cols = count($values[0]);
 				$types = preg_match('/^[bdis]{'.$cols.'}$/', $types) ? $types : str_repeat('s', $cols);
-				foreach($values as $row){
+				foreach($values as $i => $row){
 					$refs = $this->get_references($row);
 					array_unshift($refs, $types);
 					$method->invokeArgs($stmt, $refs);
 					$stmt->execute();
+					if(!empty($stmt->error_list)){
+						$errors[$i] = [
+							'error' => $stmt->error_list,
+							'sql' => $sql,
+							'values' => $row,
+							'types' => $types,
+							'loop_id' => $i,
+						];
+					}
+					$affected_rows[$i] = $stmt->affected_rows;
+					$insert_ids[$i] = !empty($stmt->insert_id) ? $stmt->insert_id : false;
 				}
 			}
+			$this->affected_rows = $affected_rows;
+			$this->errors = $errors;
+			$this->insert_ids = $insert_ids;
 			$stmt->close();
 
 			return true;
