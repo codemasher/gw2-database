@@ -20,6 +20,6 @@ define('TABLE_EVENTS', 'gw2_events');
 define('TABLE_MAPS', 'gw2_maps');
 define('TABLE_RECIPES', 'gw2_recipes');
 define('TABLE_SKINS', 'gw2_skins');
-define('TABLE_FLOORS', 'gw2_floors');
+define('TABLE_FLOORS', 'gw2_map_floors');
 define('TABLE_REGIONS', 'gw2_regions');
 define('TABLE_DIFF', 'gw2_diff');
