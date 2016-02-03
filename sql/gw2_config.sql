@@ -13,6 +13,6 @@ INSERT INTO `gw2_config` (`variable`, `value`) VALUES
 ('google_analytics_code', ''),
 ('google_webmaster_tools', 'true'),
 ('google_webmaster_tools_code', ''),
-('languages', 'de,en,es,fr'),
+('languages', 'de,en,es,fr,zh'),
 ('minify_html', 'false'),
 ('output_gzip', 'false');

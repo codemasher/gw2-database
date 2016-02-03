@@ -34,7 +34,7 @@ class GW2API{
 	 * languages supported by the API
 	 * @var array
 	 */
-	public $api_languages = ['de', 'en', 'es', 'fr']; //, 'ko', 'zh'
+	public $api_languages = ['de', 'en', 'es', 'fr', 'zh'];
 
 	/**
 	 * Holds the API response after a successful call to request()

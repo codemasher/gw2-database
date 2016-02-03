@@ -67,7 +67,7 @@ class GW2Maps extends GW2API{
 				foreach($region as $rid){
 					$base = $floor['continent_id'].'/floors/'.$floor['floor_id'].'/regions/'.$rid;
 					$urls_m[] = $base.'/maps';
-					foreach(['de', 'en', 'es', 'fr'] as $lang){
+					foreach($this->api_languages as $lang){
 						$urls_r[] = $base.'?lang='.$lang;
 					}
 				}
@@ -99,8 +99,8 @@ class GW2Maps extends GW2API{
 
 
 					$sql = 'INSERT INTO '.TABLE_REGIONS.' (`continent_id`, `floor_id`, `region_id`,
-								`label_coord`, `maps`, `name_de`, `name_en`, `name_es`, `name_fr`)
-								VALUES(?,?,?,?,?,?,?,?,?)';
+								`label_coord`, `maps`, `name_de`, `name_en`, `name_es`, `name_fr`, `name_zh`)
+								VALUES(?,?,?,?,?,?,?,?,?,?)';
 
 					$regions = array_merge($location, [
 						json_encode($this->temp_data[$path_hash]['en']['label_coord']),
@@ -109,6 +109,7 @@ class GW2Maps extends GW2API{
 						$this->temp_data[$path_hash]['en']['name'],
 						$this->temp_data[$path_hash]['es']['name'],
 						$this->temp_data[$path_hash]['fr']['name'],
+						$this->temp_data[$path_hash]['zh']['name'],
 					]);
 
 					$this->db->prepared_query($sql, $regions);
@@ -130,7 +131,7 @@ class GW2Maps extends GW2API{
 
 		$urls = [];
 		foreach($maps as $map){
-			foreach(['de', 'en', 'es', 'fr'] as $lang){
+			foreach($this->api_languages as $lang){
 				$urls[] = $map['continent_id'].'/floors/'.$map['floor_id'].'/regions/'.$map['region_id'].'/maps/'.$map['map_id'].'?lang='.$lang;
 			}
 		}
@@ -145,7 +146,8 @@ class GW2Maps extends GW2API{
 				if(count($this->temp_data[$path_hash]) === count($this->api_languages)){
 					$sql = 'UPDATE '.TABLE_MAPS.' SET `default_floor` = ?, `map_rect` = ?, `continent_rect` = ?,
 									`min_level` = ?, `max_level` = ?, `name_de` = ?, `data_de` = ?,  `name_en` = ?,
-									`data_en` = ?,  `name_es` = ?, `data_es` = ?,  `name_fr` = ?, `data_fr` = ?
+									`data_en` = ?,  `name_es` = ?, `data_es` = ?,  `name_fr` = ?, `data_fr` = ?,
+									`name_zh` = ?, `data_zh` = ?
 								WHERE `continent_id` = ?
 									AND `floor_id` = ?
 									AND `region_id` = ?
@@ -165,6 +167,8 @@ class GW2Maps extends GW2API{
 						json_encode($this->temp_data[$path_hash]['es']),
 						$this->temp_data[$path_hash]['fr']['name'],
 						json_encode($this->temp_data[$path_hash]['fr']),
+						$this->temp_data[$path_hash]['zh']['name'],
+						json_encode($this->temp_data[$path_hash]['zh']),
 					], explode('/', str_replace(['/v2/continents/', 'floors/', 'regions/', 'maps/'], '', $path)));
 
 					$this->db->prepared_query($sql, $values);

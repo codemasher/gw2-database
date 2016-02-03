@@ -8,10 +8,12 @@ CREATE TABLE IF NOT EXISTS `gw2_events` (
   `name_en` tinytext COLLATE utf8mb4_bin NOT NULL,
   `name_es` tinytext COLLATE utf8mb4_bin NOT NULL,
   `name_fr` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `name_zh` tinytext COLLATE utf8mb4_bin NOT NULL,
   `wikipage_de` int(10) unsigned NOT NULL DEFAULT '0',
   `wikipage_en` int(10) unsigned NOT NULL DEFAULT '0',
   `wikipage_es` int(10) unsigned NOT NULL DEFAULT '0',
   `wikipage_fr` int(10) unsigned NOT NULL DEFAULT '0',
+  `wikipage_zh` int(10) unsigned NOT NULL DEFAULT '0',
   `wiki_checked` tinyint(1) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

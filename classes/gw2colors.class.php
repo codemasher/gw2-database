@@ -34,7 +34,7 @@ class GW2Colors extends GW2API{
 			$values[] = [$id, $time];
 		}
 		$this->db->multi_insert('INSERT IGNORE INTO '.TABLE_COLORS.' (`color_id`, `added`) VALUES (?,?)', $values);
-		$this->log('Color database refresh done. '.count($this->api_response).' items in skins.json.');
+		$this->log('Color database refresh done. '.count($this->api_response).' items in /v2/colors.');
 	}
 
 	/**
@@ -66,12 +66,13 @@ class GW2Colors extends GW2API{
 					if(count($this->temp_data[$ids[0]]) === count($this->api_languages)){
 						$values = [];
 						foreach($ids as $id){
-							// todo: wait for https://github.com/arenanet/api-cdi/pull/51
+							// todo: wait for https://github.com/arenanet/api-cdi/pull/51 (done, now implement...)
 							$values[] = [
 								$this->temp_data[$id]['de']['name'],
 								$this->temp_data[$id]['en']['name'],
 								$this->temp_data[$id]['es']['name'],
 								$this->temp_data[$id]['fr']['name'],
+								$this->temp_data[$id]['zh']['name'],
 								json_encode($this->temp_data[$id]['en']['base_rgb']),
 								json_encode($this->temp_data[$id]['en']['cloth']),
 								json_encode($this->temp_data[$id]['en']['leather']),
@@ -84,7 +85,7 @@ class GW2Colors extends GW2API{
 							unset($this->temp_data[$id]);
 						}
 
-						$sql = 'UPDATE '.TABLE_COLORS.' SET `name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?,
+						$sql = 'UPDATE '.TABLE_COLORS.' SET `name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `name_zh` = ?,
 									`base_rgb` = ?, `cloth` = ?, `leather` = ?, `metal` = ?, `updated` = ?, `update_time` = ?
 									WHERE `color_id` = ?';
 

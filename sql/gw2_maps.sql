@@ -13,9 +13,11 @@ CREATE TABLE IF NOT EXISTS `gw2_maps` (
   `name_en` tinytext COLLATE utf8mb4_bin NOT NULL,
   `name_es` tinytext COLLATE utf8mb4_bin NOT NULL,
   `name_fr` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `name_zh` tinytext COLLATE utf8mb4_bin NOT NULL,
   `data_de` text COLLATE utf8mb4_bin NOT NULL,
   `data_en` text COLLATE utf8mb4_bin NOT NULL,
   `data_es` text COLLATE utf8mb4_bin NOT NULL,
   `data_fr` text COLLATE utf8mb4_bin NOT NULL,
+  `data_zh` text COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

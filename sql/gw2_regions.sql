@@ -9,5 +9,6 @@ CREATE TABLE IF NOT EXISTS `gw2_regions` (
   `name_en` enum('Ascalon','Steamspur Mountains','Shiverpeak Mountains','Maguuma Wastes','Tarnished Coast','Fractals of the Mists','Player vs. Player','Kryta','World vs. World','Mad King''s Realm','Ruins of Orr','Super Adventure Box') COLLATE utf8mb4_bin NOT NULL,
   `name_es` enum('Ascalon','Montañas Brotavapor','Montañas Picosescalofriantes','Páramos de Maguuma','Costa de Bronce','Fractales de la Niebla','Jugador contra Jugador','Kryta','Mundo contra Mundo','Reino del Rey Loco','Ruinas de Orr','Super Adventure Box') COLLATE utf8mb4_bin NOT NULL,
   `name_fr` enum('Ascalon','Chaîne de Pointebrume','Chaîne des Cimefroides','Contrées sauvages de Maguuma','Côte ternie','Fractales des Brumes','Joueur contre Joueur','Kryte','Monde contre Monde','Royaume du Roi Dément','Ruines d''Orr','Super Adventure Box') COLLATE utf8mb4_bin NOT NULL,
+  `name_zh` enum('Ascalon','Steamspur Mountains','Shiverpeak Mountains','Maguuma Wastes','Tarnished Coast','Fractals of the Mists','Player vs. Player','Kryta','World vs. World','Mad King''s Realm','Ruins of Orr','Super Adventure Box') COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

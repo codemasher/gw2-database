@@ -77,7 +77,7 @@ class GW2Items extends GW2API{
 	public function item_update($full_update = false){
 		// going to blow up the memory here...
 		$this->items = $this->db->simple_query(
-			'SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `update_time`
+			'SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, `update_time`
 				FROM '.TABLE_ITEMS.(
 			$full_update
 				? ''
@@ -139,8 +139,8 @@ class GW2Items extends GW2API{
 
 						$sql = 'UPDATE '.TABLE_ITEMS.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
 					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_combination` = ?, `unlock_id` = ?,
-					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `data_de` = ?, `data_en` = ?, `data_es` = ?,
-					`data_fr` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
+					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `name_zh` = ?, `data_de` = ?, `data_en` = ?, `data_es` = ?,
+					`data_fr` = ?, `data_zh` = ?, `updated` = ?, `update_time` = ?  WHERE `id` = ?';
 
 						$this->db->multi_insert($sql, $values);
 						unset($response, $values, $changes);
@@ -194,10 +194,12 @@ class GW2Items extends GW2API{
 			str_replace($s, ' ', $data['en']['name']),
 			str_replace($s, ' ', $data['es']['name']),
 			str_replace($s, ' ', $data['fr']['name']),
+			str_replace($s, ' ', $data['zh']['name']),
 			json_encode($data['de']),
 			json_encode($data['en']),
 			json_encode($data['es']),
 			json_encode($data['fr']),
+			json_encode($data['zh']),
 			1,
 			time(),
 			$data['en']['id'],
@@ -361,7 +363,7 @@ class GW2Items extends GW2API{
 	 */
 	public function skin_update($full_update = false){
 		$this->skins = $this->db->simple_query(
-			'SELECT `skin_id`, `data_de`, `data_en`, `data_es`, `data_fr`, `update_time`
+			'SELECT `skin_id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, `update_time`
 				FROM '.TABLE_SKINS.(
 			$full_update
 				? ''
@@ -430,10 +432,12 @@ class GW2Items extends GW2API{
 								$this->temp_data[$id]['en']['name'],
 								$this->temp_data[$id]['es']['name'],
 								$this->temp_data[$id]['fr']['name'],
+								$this->temp_data[$id]['zh']['name'],
 								json_encode($this->temp_data[$id]['de']),
 								json_encode($this->temp_data[$id]['en']),
 								json_encode($this->temp_data[$id]['es']),
 								json_encode($this->temp_data[$id]['fr']),
+								json_encode($this->temp_data[$id]['zh']),
 								1,
 								time(),
 								$id,
@@ -443,8 +447,8 @@ class GW2Items extends GW2API{
 							unset($this->temp_data[$id]);
 						}
 						$sql = 'UPDATE '.TABLE_SKINS.' SET `signature`= ?, `file_id`= ?, `type`= ?, `subtype`= ?,
-									`properties` = ?, `name_de`= ?, `name_en`= ?, `name_es`= ?, `name_fr`= ?,
-									`data_de`= ?, `data_en`= ?, `data_es`= ?, `data_fr`= ?, `updated`= ?, `update_time`= ?
+									`properties` = ?, `name_de`= ?, `name_en`= ?, `name_es`= ?, `name_fr`= ?, `name_zh`= ?,
+									`data_de`= ?, `data_en`= ?, `data_es`= ?, `data_fr`= ?, `data_zh`= ?, `updated`= ?, `update_time`= ?
 									WHERE `skin_id` = ?';
 
 						$this->db->multi_insert($sql, $values);
