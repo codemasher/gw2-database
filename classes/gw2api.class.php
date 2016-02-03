@@ -99,6 +99,7 @@ class GW2API{
 	const CRAFT_LEATHERWORKER = 0x20;
 	const CRAFT_TAILOR = 0x40;
 	const CRAFT_WEAPONSMITH = 0x80;
+	const CRAFT_SCRIBE = 0x100;
 
 	const CHATLINK_COIN = 0x01;
 	const CHATLINK_ITEM = 0x02;
