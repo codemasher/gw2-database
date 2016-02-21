@@ -1,0 +1,40 @@
+{
+	"name": "chillerlan/gw2-database",
+	"description": "A Guild Wars 2 Database built from the official API. PHP 5.6+, PHP 7",
+	"homepage": "https://github.com/codemasher/gw2-database",
+	"license": "MIT",
+	"type": "library",
+	"keywords": [
+		"guild wars 2",
+        "API",
+        "mysql",
+		"database"
+	],
+	"authors": [
+		{
+			"name": "Smiley",
+			"email": "smiley@chillerlan.net"
+		}
+	],
+	"require": {
+		"php": ">=5.6.0",
+		"vlucas/phpdotenv": "2.2.*"
+	},
+	"require-dev": {
+		"chillerlan/framework": "dev-master",
+		"phpunit/phpunit": "5.2.*"
+	},
+	"suggest": {
+		"chillerlan/bbcode": "*"
+	},
+	"autoload": {
+		"psr-4": {
+			"chillerlan\\GW2DB\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"chillerlan\\GW2DBTest\\": "tests/"
+		}
+	}
+}

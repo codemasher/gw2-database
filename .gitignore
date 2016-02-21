@@ -1,20 +1,5 @@
-#################
-## PHPStorm
-#################
-
-.idea/
-
-#################
-## Eclipse
-#################
-
-.settings/
-.buildpath
-.project
-
-#################
-## Misc
-#################
-
-inc/mysqli.inc.php
-cli/generated/
+composer.lock
+docs
+vendor
+config/.env
+logs
