@@ -33,7 +33,7 @@
 			"src/Helpers/functions.php"
 		],
 		"psr-4": {
-			"chillerlan\\GW2DBUpdater\\": "cli/",
+			"chillerlan\\GW2DBCLI\\": "cli/",
 			"chillerlan\\GW2DB\\": "src/"
 		}
 	}
