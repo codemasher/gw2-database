@@ -16,7 +16,7 @@
  * @return array
  * @link http://php.net/manual/function.array-diff-assoc.php#111675
  */
-if(!function_exists('')){
+if(!function_exists('array_diff_assoc_recursive')){
 	function array_diff_assoc_recursive(array $arr1, array $arr2, $identical = false){
 		$diff = $identical ? array_diff_key($arr2, $arr1) : [];
 		foreach($arr1 as $key => $value){
