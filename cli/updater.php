@@ -25,7 +25,7 @@ mb_internal_encoding('UTF-8');
 
 $updaters = [
 	ItemRefresh::class,
-#	ItemUpdater::class,
+	ItemUpdater::class,
 ];
 
 
