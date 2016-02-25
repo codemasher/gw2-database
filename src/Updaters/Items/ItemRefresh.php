@@ -21,12 +21,11 @@ use chillerlan\GW2DB\Updaters\UpdaterInterface;
  */
 class ItemRefresh extends UpdaterBase implements UpdaterInterface{
 
-	const ITEM_TABLE = 'gw2_items_temp';
+	const ITEM_TEMP_TABLE = 'gw2_items_temp';
 
 	public function init(){
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
-
 		$response = $this->fetch(self::API_BASE.'items');
 		$this->logToCLI(__METHOD__.': response');
 
@@ -34,10 +33,19 @@ class ItemRefresh extends UpdaterBase implements UpdaterInterface{
 			throw new UpdaterException('failed to get /v2/items');
 		}
 
-		$this->GW2MySQLiDriver->multi_callback('INSERT IGNORE INTO '.self::ITEM_TABLE.' (`id`) VALUES (?)', $response->json, function($item){
-			return [$item[0]];
-		});
+		$sql = 'INSERT IGNORE INTO '.self::ITEM_TEMP_TABLE.' (`id`) VALUES (?)';
 
+		/**
+		 * @param int $item
+		 *
+		 * @return array
+		 */
+		$callback = function($item){
+			return [$item];
+		};
+
+		$this->GW2MySQLiDriver->multi_callback($sql, $response->json, $callback);
 		$this->logToCLI(__METHOD__.': end');
 	}
+
 }
