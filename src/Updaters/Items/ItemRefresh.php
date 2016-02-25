@@ -21,7 +21,7 @@ use chillerlan\GW2DB\Updaters\UpdaterInterface;
  */
 class ItemRefresh extends UpdaterBase implements UpdaterInterface{
 
-	const ITEM_TABLE = 'gw2_items_temp';
+	const ITEM_TEMP_TABLE = 'gw2_items_temp';
 
 	public function init(){
 		$this->starttime = microtime(true);
@@ -33,7 +33,7 @@ class ItemRefresh extends UpdaterBase implements UpdaterInterface{
 			throw new UpdaterException('failed to get /v2/items');
 		}
 
-		$sql = 'INSERT IGNORE INTO '.self::ITEM_TABLE.' (`id`) VALUES (?)';
+		$sql = 'INSERT IGNORE INTO '.self::ITEM_TEMP_TABLE.' (`id`) VALUES (?)';
 
 		/**
 		 * @param int $item

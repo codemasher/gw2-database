@@ -13,8 +13,9 @@ namespace chillerlan\GW2DBCLI;
 require_once '../vendor/autoload.php';
 require_once 'functions.php';
 
+use chillerlan\GW2DB\Updaters\Items\CreateDB;
 use chillerlan\GW2DB\Updaters\Items\ItemRefresh;
-use chillerlan\GW2DB\Updaters\Items\ItemUpdater;
+use chillerlan\GW2DB\Updaters\Items\TempUpdater;
 
 if(!is_cli()){
 	throw new \Exception('no way, buddy.');
@@ -25,7 +26,8 @@ mb_internal_encoding('UTF-8');
 
 $updaters = [
 	ItemRefresh::class,
-	ItemUpdater::class,
+	TempUpdater::class,
+#	CreateDB::class,
 ];
 
 

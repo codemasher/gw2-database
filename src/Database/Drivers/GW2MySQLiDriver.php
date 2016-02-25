@@ -22,6 +22,26 @@ use ReflectionClass;
 class GW2MySQLiDriver extends MySQLiDriver{
 
 	/**
+	 * @var \ReflectionMethod
+	 */
+	protected $reflectionMethod;
+
+	/**
+	 * @var \mysqli_stmt
+	 */
+	protected $mysqli_stmt;
+
+	/**
+	 * @var callable
+	 */
+	protected $callback;
+
+	/**
+	 * @var string
+	 */
+	protected $sql;
+
+	/**
 	 * Prepared multi line insert with callback
 	 *
 	 * Prepared statement multi insert/update
@@ -34,42 +54,45 @@ class GW2MySQLiDriver extends MySQLiDriver{
 	 * @throws \chillerlan\Database\DBException
 	 */
 	public function multi_callback($sql, array $data, callable $callback){
+		$this->sql = $sql;
+		$this->callback = $callback;
 
-		if(!is_array($data) || count($data) < 1){
+		if(count($data) < 1){
 			throw new DBException('invalid data');
 		}
 
-		$stmt = $this->db->stmt_init();
+		$this->mysqli_stmt = $this->db->stmt_init();
 
-		if(!$stmt->prepare($sql)){
-			throw new DBException('could not prepare statement ('.$sql.')');
+		if(!$this->mysqli_stmt->prepare($this->sql)){
+			throw new DBException('could not prepare statement ('.$this->sql.')');
 		}
 
-		$bind_param = (new ReflectionClass('mysqli_stmt'))->getMethod('bind_param');
+		$this->reflectionMethod = (new ReflectionClass('mysqli_stmt'))->getMethod('bind_param');
 
-		foreach($data as $row){
+		array_map(function($row){
 			$references = [];
 
-			foreach(call_user_func($callback, $row) as &$field){
+			foreach(call_user_func($this->callback, $row) as &$field){
 				$references[] = &$field;
 			}
 
 			$types = $this->getTypes($references);
 			array_unshift($references, $types);
-			$bind_param->invokeArgs($stmt, $references);
-			$stmt->execute();
+			$this->reflectionMethod->invokeArgs($this->mysqli_stmt, $references);
+			$this->mysqli_stmt->execute();
 
 			$this->addStats([
-				'affected_rows' => $stmt->affected_rows,
-				'error'         => $stmt->error_list,
-				'insert_id'     => $stmt->insert_id,
-				'sql'           => $sql,
-				'values'        => $data,
+				'affected_rows' => $this->mysqli_stmt->affected_rows,
+				'error'         => $this->mysqli_stmt->error_list,
+				'insert_id'     => $this->mysqli_stmt->insert_id,
+				'sql'           => $this->sql,
+				'values'        => $row,
 				'types'         => $types,
 			]);
-		}
 
-		$stmt->close();
+		}, $data);
+
+		$this->mysqli_stmt->close();
 
 		return true;
 	}

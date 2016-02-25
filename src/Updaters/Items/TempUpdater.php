@@ -1,7 +1,7 @@
 <?php
 /**
  *
- * @filesource   ItemUpdater.php
+ * @filesource   TempUpdater.php
  * @created      24.02.2016
  * @package      chillerlan\GW2DB\Updaters\Items
  * @author       Smiley <smiley@chillerlan.net>
@@ -12,6 +12,7 @@
 namespace chillerlan\GW2DB\Updaters\Items;
 
 use chillerlan\GW2DB\Updaters\UpdaterBase;
+use chillerlan\GW2DB\Updaters\UpdaterException;
 use chillerlan\GW2DB\Updaters\UpdaterInterface;
 use chillerlan\TinyCurl\MultiRequest;
 use chillerlan\TinyCurl\MultiRequestOptions;
@@ -20,16 +21,11 @@ use chillerlan\TinyCurl\Response\ResponseInterface;
 use chillerlan\TinyCurl\URL;
 
 /**
- * Class ItemUpdater
+ * Class TempUpdater
  */
-class ItemUpdater extends UpdaterBase implements UpdaterInterface, MultiResponseHandlerInterface{
+class TempUpdater extends UpdaterBase implements UpdaterInterface, MultiResponseHandlerInterface{
 
-	const ITEM_TABLE = 'gw2_items_temp';
-
-	/**
-	 * @var array
-	 */
-	protected $items_from_db = [];
+	const ITEM_TEMP_TABLE = 'gw2_items_temp';
 
 	/**
 	 * @var array
@@ -42,7 +38,7 @@ class ItemUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 	public function init(){
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
-		$this->getItemsFromDB();
+		$this->getURLs();
 
 		$options = new MultiRequestOptions;
 		$options->ca_info     = self::CACERT;
@@ -94,7 +90,7 @@ class ItemUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 
 			// insert the data as soon as we receive it
 			// this will result in a couple more database writes but won't block the responses much
-			$sql   = 'UPDATE '.self::ITEM_TABLE.' SET `name_'.$lang.'` = ?, `data_'.$lang.'` = ? WHERE `id` = ?';
+			$sql   = 'UPDATE '.self::ITEM_TEMP_TABLE.' SET `name_'.$lang.'` = ?, `data_'.$lang.'` = ? WHERE `id` = ?';
 			$query = $this->GW2MySQLiDriver->multi_callback($sql, $response->json, function($item){
 				return [
 					$item->name,
@@ -130,24 +126,27 @@ class ItemUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 	}
 
 	/**
-	 * Loads all the items currently stored in the DB along with their response data in order to diff the incoming ones.
+	 * Loads all the item IDs currently stored in the DB and creates the request URLs
 	 *
 	 * going to blow up the memory here...
 	 */
-	protected function getItemsFromDB(){
+	protected function getURLs(){
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$sql = 'SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.self::ITEM_TABLE.' WHERE `blacklist` = 0';
-		$this->items_from_db = $this->GW2MySQLiDriver->raw($sql, 'id', true, true);
+		if($items = $this->GW2MySQLiDriver->raw('SELECT `id` FROM '.self::ITEM_TEMP_TABLE.' WHERE `blacklist` = 0', 'id', true, true)){
 
-		array_map(function($chunk){
-			foreach(self::API_LANGUAGES as $lang){
-				$this->urls[] = new URL(self::API_BASE.'items?lang='.$lang.'&ids='.implode(',', array_column($chunk, 'id')));
-			}
-		}, array_chunk($this->items_from_db, self::CHUNK_SIZE));
+			array_map(function($chunk){
+				foreach(self::API_LANGUAGES as $lang){
+					$this->urls[] = new URL(self::API_BASE.'items?lang='.$lang.'&ids='.implode(',', array_column($chunk, 'id')));
+				}
+			}, array_chunk($items, self::CHUNK_SIZE));
 
-		$this->logToCLI(__METHOD__.': end');
+			$this->logToCLI(__METHOD__.': end');
+		}
+		else{
+			throw new UpdaterException('failed to fetch item IDs from db');
+		}
 	}
 
 
