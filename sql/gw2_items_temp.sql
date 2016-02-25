@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS `gw2_items_temp` (
   `data_fr`       TEXT                NOT NULL,
   `data_zh`       TEXT                NOT NULL,
   `updated`       TINYINT(1) UNSIGNED NOT NULL DEFAULT '0',
-  `response_time` TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `response_time` TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 )
   ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
