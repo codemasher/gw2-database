@@ -23,7 +23,7 @@ use Dotenv\Dotenv;
 class UpdaterBase{
 	use DatabaseTrait, RequestTrait;
 
-	const CONCURRENT    = 10;
+	const CONCURRENT    = 7;
 	const CHUNK_SIZE    = 100;
 	const CONFIGDIR     = __DIR__.'/../../config';
 	const STORAGEDIR    = __DIR__.'/../../storage';
@@ -36,14 +36,14 @@ class UpdaterBase{
 	 */
 	protected $GW2MySQLiDriver;
 
-
 	/**
 	 * @var float
 	 */
 	protected $starttime;
 
-
-
+	/**
+	 * UpdaterBase constructor.
+	 */
 	public function __construct(){
 		(new Dotenv(self::CONFIGDIR))->load();
 
@@ -67,5 +67,36 @@ class UpdaterBase{
 		echo '['.date('c', time()).']'.sprintf('[%10ss] ', sprintf('%01.4f', microtime(true) - $this->starttime)).$str.PHP_EOL;
 	}
 
+	/**
+	 * @param string $endpoint
+	 * @param string $table
+	 *
+	 * @throws \chillerlan\Database\DBException
+	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 */
+	protected function refreshIDs($endpoint, $table){
+		$this->starttime = microtime(true);
+		$this->logToCLI(__METHOD__.': start ('.$endpoint.', '.$table.')');
+		$response = $this->fetch(self::API_BASE.$endpoint);
+		$this->logToCLI(__METHOD__.': response');
 
+		if($response->info->http_code !== 200){
+			throw new UpdaterException('failed to get /v2/'.$endpoint);
+		}
+
+		/**
+		 * @param int $item
+		 *
+		 * @return array
+		 */
+		$callback = function($item){
+			return [
+				$item,
+			];
+		};
+
+		$this->GW2MySQLiDriver->multi_callback('INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)', $response->json, $callback);
+		$this->logToCLI(__METHOD__.': end');
+	}
+	
 }

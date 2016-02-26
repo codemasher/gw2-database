@@ -14,7 +14,6 @@ require_once '../vendor/autoload.php';
 require_once 'functions.php';
 
 use chillerlan\GW2DB\Updaters\Items\CreateDB;
-use chillerlan\GW2DB\Updaters\Items\ItemRefresh;
 use chillerlan\GW2DB\Updaters\Items\TempUpdater;
 
 if(!is_cli()){
@@ -25,9 +24,8 @@ date_default_timezone_set('UTC');
 mb_internal_encoding('UTF-8');
 
 $updaters = [
-	ItemRefresh::class,
 	TempUpdater::class,
-#	CreateDB::class,
+	CreateDB::class,
 ];
 
 

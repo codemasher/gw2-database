@@ -38,6 +38,7 @@ class TempUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 	public function init(){
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
+		$this->refreshIDs('items', self::ITEM_TEMP_TABLE);
 		$this->getURLs();
 
 		$options = new MultiRequestOptions;

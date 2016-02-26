@@ -46,15 +46,20 @@ class GW2MySQLiDriver extends MySQLiDriver{
 	 *
 	 * Prepared statement multi insert/update
 	 *
-	 * @param string   $sql      The SQL statement to prepare
-	 * @param array    $data     an array with the (raw) data to insert, each row represents one line to insert.
-	 * @param callable $callback a callback that processes the values for each row.
+	 * @param string         $sql      The SQL statement to prepare
+	 * @param array          $data     an array with the (raw) data to insert, each row represents one line to insert.
+	 * @param callable|array $callback a callback that processes the values for each row.
 	 *
 	 * @return bool true query success, otherwise false
 	 * @throws \chillerlan\Database\DBException
 	 */
-	public function multi_callback($sql, array $data, callable $callback){
+	public function multi_callback($sql, array $data, $callback){
 		$this->sql = $sql;
+
+		if(!is_callable($callback) || (is_array($callback) && (!isset($callback[0]) ||!is_object($callback[0])))){
+			throw new DBException('invalid callback');
+		}
+
 		$this->callback = $callback;
 
 		if(count($data) < 1){
@@ -72,15 +77,14 @@ class GW2MySQLiDriver extends MySQLiDriver{
 		array_map(function($row){
 			$references = [];
 
-			foreach(call_user_func($this->callback, $row) as &$field){
+			foreach(call_user_func_array($this->callback, [$row]) as &$field){
 				$references[] = &$field;
 			}
 
-			$types = $this->getTypes($references);
-			array_unshift($references, $types);
+			array_unshift($references, $this->getTypes($references));
 			$this->reflectionMethod->invokeArgs($this->mysqli_stmt, $references);
 			$this->mysqli_stmt->execute();
-
+/*
 			$this->addStats([
 				'affected_rows' => $this->mysqli_stmt->affected_rows,
 				'error'         => $this->mysqli_stmt->error_list,
@@ -89,7 +93,7 @@ class GW2MySQLiDriver extends MySQLiDriver{
 				'values'        => $row,
 				'types'         => $types,
 			]);
-
+*/
 		}, $data);
 
 		$this->mysqli_stmt->close();
