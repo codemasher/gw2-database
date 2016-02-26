@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `gw2_attributes` (
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_bin;
 
-INSERT INTO `gw2_attributes` (`shortname`, `primary`, `name_de`, `name_en`, `name_es`, `name_fr`, `name_fr`) VALUES
+INSERT INTO `gw2_attributes` (`shortname`, `primary`, `name_de`, `name_en`, `name_es`, `name_fr`, `name_zh`) VALUES
   ('BoonDuration', 0, 'Segensdauer', 'Boon Duration', 'Duración de la Bendición', 'Durée d''avantage', ''),
   ('ConditionDamage', 0, 'Zustandsschaden', 'Condition Damage', 'Daño de Condición', 'Dégâts par altération', ''),
   ('ConditionDuration', 0, 'Zustandsdauer', 'Condition Duration', 'Duración de la Condición', 'Durée d''altération', ''),

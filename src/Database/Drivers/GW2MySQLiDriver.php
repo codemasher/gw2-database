@@ -42,9 +42,7 @@ class GW2MySQLiDriver extends MySQLiDriver{
 	protected $sql;
 
 	/**
-	 * Prepared multi line insert with callback
-	 *
-	 * Prepared statement multi insert/update
+	 * Prepared multi line insert/update with callback
 	 *
 	 * @param string         $sql      The SQL statement to prepare
 	 * @param array          $data     an array with the (raw) data to insert, each row represents one line to insert.
@@ -56,7 +54,7 @@ class GW2MySQLiDriver extends MySQLiDriver{
 	public function multi_callback($sql, array $data, $callback){
 		$this->sql = $sql;
 
-		if(!is_callable($callback) || (is_array($callback) && (!isset($callback[0]) ||!is_object($callback[0])))){
+		if(!is_callable($callback) || (is_array($callback) && (!isset($callback[0]) || !is_object($callback[0])))){
 			throw new DBException('invalid callback');
 		}
 
@@ -73,11 +71,21 @@ class GW2MySQLiDriver extends MySQLiDriver{
 		}
 
 		$this->reflectionMethod = (new ReflectionClass('mysqli_stmt'))->getMethod('bind_param');
+		array_map([$this, 'insertPreparedRow'], $data);
+		$this->mysqli_stmt->close();
 
-		array_map(function($row){
-			$references = [];
+		return true;
+	}
 
-			foreach(call_user_func_array($this->callback, [$row]) as &$field){
+	/**
+	 * @param mixed $row
+	 */
+	protected function insertPreparedRow($row){
+		$references = [];
+
+		if($row = call_user_func_array($this->callback, [$row])){
+
+			foreach($row as &$field){
 				$references[] = &$field;
 			}
 
@@ -94,11 +102,9 @@ class GW2MySQLiDriver extends MySQLiDriver{
 				'types'         => $types,
 			]);
 */
-		}, $data);
 
-		$this->mysqli_stmt->close();
+		}
 
-		return true;
+
 	}
-
 }

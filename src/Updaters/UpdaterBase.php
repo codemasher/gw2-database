@@ -24,7 +24,7 @@ class UpdaterBase{
 	use DatabaseTrait, RequestTrait;
 
 	const CONCURRENT    = 7;
-	const CHUNK_SIZE    = 100;
+	const CHUNK_SIZE    = 50;
 	const CONFIGDIR     = __DIR__.'/../../config';
 	const STORAGEDIR    = __DIR__.'/../../storage';
 	const CACERT        = __DIR__.'/../../config/update-me-cacert.pem';
@@ -84,19 +84,18 @@ class UpdaterBase{
 			throw new UpdaterException('failed to get /v2/'.$endpoint);
 		}
 
-		/**
-		 * @param int $item
-		 *
-		 * @return array
-		 */
-		$callback = function($item){
-			return [
-				$item,
-			];
-		};
-
-		$this->GW2MySQLiDriver->multi_callback('INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)', $response->json, $callback);
+		$this->GW2MySQLiDriver->multi_callback('INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)', $response->json, [$this, 'callback']);
 		$this->logToCLI(__METHOD__.': end');
 	}
-	
+
+	/**
+	 * @param int $item
+	 *
+	 * @return array
+	 */
+	public function callback($item){
+		return [
+			$item,
+		];
+	}
 }

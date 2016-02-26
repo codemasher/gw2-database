@@ -26,7 +26,9 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 	protected $attribute_combinations = [];
 
 	public function init(){
-		
+		$this->starttime = microtime(true);
+		$this->logToCLI(__METHOD__.': start');
+
 		// refresh IDs in the item table
 		$this->refreshIDs('items', self::ITEM_TABLE);
 
@@ -35,7 +37,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		$this->temp_items = $this->GW2MySQLiDriver->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.self::ITEM_TEMP_TABLE.' LIMIT 50', 'id');
 
 		// get the attribute combinations
-		
+
 		/**
 		 * @param \stdClass $combo
 		 *
@@ -57,7 +59,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 
 			return $combination;
 		};
-		
+
 		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM `gw2_attribute_combinations`';
 		$this->attribute_combinations = array_map($callback, $this->GW2MySQLiDriver->raw($sql, 'id'));
 
@@ -76,6 +78,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 
 		$this->GW2MySQLiDriver->multi_callback($sql, $this->temp_items, [$this, 'callback']);
 
+		$this->logToCLI(__METHOD__.': end');
 	}
 
 	/**
@@ -87,6 +90,11 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 
 		// slow down things...
 		foreach(self::API_LANGUAGES as $lang){
+
+			if(empty($item->{'data_'.$lang})){
+				return false;
+			}
+
 			// decode the json to array
 			$item->{'data_'.$lang} = json_decode($item->{'data_'.$lang}, true);
 			// deep sort the array https://gitter.im/chillerlan/gw2hero.es?at=56c3dcfbfdaaf5f17c0b331d
@@ -140,10 +148,11 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 
 		return $insert;
 	}
+
 	/**
 	 * @param array $infix_upgrade
 	 *
-	 * @return bool|int
+	 * @return int
 	 *
 	 * @link http://wiki.guildwars2.com/wiki/Item_nomenclature
 	 * @todo: fix!
@@ -165,14 +174,16 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		}
 
 		$key = array_search($attributes, array_column($this->attribute_combinations, 'attributes', 'id'));
-		if(count($attributes) === 7){
-			return 52; // celestial todo: HARDCODE ALL THE THINGS!
-		}
-		else if(isset($this->attribute_combinations[$key])){
-			return $this->attribute_combinations[$key]['id'];
+
+		switch(true){
+			case count($attributes) === 7:
+				return 52; // celestial todo: HARDCODE ALL THE THINGS!
+			case isset($this->attribute_combinations[$key]):
+				return $this->attribute_combinations[$key]['id'];
+			default:
+				return 0;
 		}
 
-		return 0;
 	}
 
 
