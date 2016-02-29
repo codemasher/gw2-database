@@ -23,8 +23,8 @@ use Dotenv\Dotenv;
 class UpdaterBase{
 	use DatabaseTrait, RequestTrait;
 
-	const CONCURRENT    = 7;
-	const CHUNK_SIZE    = 50;
+	const CONCURRENT    = 15;
+	const CHUNK_SIZE    = 200;
 	const CONFIGDIR     = __DIR__.'/../../config';
 	const STORAGEDIR    = __DIR__.'/../../storage';
 	const CACERT        = __DIR__.'/../../config/update-me-cacert.pem';
@@ -84,7 +84,14 @@ class UpdaterBase{
 			throw new UpdaterException('failed to get /v2/'.$endpoint);
 		}
 
-		$this->GW2MySQLiDriver->multi_callback('INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)', $response->json, [$this, 'callback']);
+		$this->GW2MySQLiDriver->multi_callback(
+			'INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)',
+			$response->json,
+			function ($item){
+				return [$item];
+			}
+		);
+
 		$this->logToCLI(__METHOD__.': end');
 	}
 
