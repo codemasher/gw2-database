@@ -33,8 +33,8 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		$this->refreshIDs('items', self::ITEM_TABLE);
 
 		// fetch both, old and new items
-		$this->old_items  = $this->GW2MySQLiDriver->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.self::ITEM_TABLE, 'id', true, true);
-		$this->temp_items = $this->GW2MySQLiDriver->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.self::ITEM_TEMP_TABLE, 'id', true, true);
+		$this->old_items  = $this->MySQLiDriver->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.self::ITEM_TABLE, 'id', true, true);
+		$this->temp_items = $this->MySQLiDriver->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.self::ITEM_TEMP_TABLE, 'id', true, true);
 
 		// get the attribute combinations
 
@@ -61,16 +61,16 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		};
 
 		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM `gw2_attribute_combinations`';
-		$this->attribute_combinations = array_map($callback, $this->GW2MySQLiDriver->raw($sql, 'id'));
+		$this->attribute_combinations = array_map($callback, $this->MySQLiDriver->raw($sql, 'id'));
 
 		// update
 		$sql = 'UPDATE '.self::ITEM_TABLE.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
 					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_combination` = ?, `unlock_id` = ?,
 					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `name_zh` = ?, 
 					`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?, `data_zh` = ?, 
-					`updated` = ?  WHERE `id` = ?';
+					`metadata` = ?, `updated` = ? WHERE `id` = ?';
 
-		$this->GW2MySQLiDriver->multi_callback($sql, $this->temp_items, [$this, 'callback']);
+		$this->MySQLiDriver->multi_callback($sql, $this->temp_items, [$this, 'callback']);
 
 		$this->logToCLI(__METHOD__.': end');
 	}
@@ -85,22 +85,32 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		// slow down things...
 		foreach(self::API_LANGUAGES as $lang){
 
+			// discard empty responses (if any...)
 			if(empty($item['data_'.$lang])){
 				return false;
 			}
 
 			// decode the json to array
 			$item['data_'.$lang] = json_decode($item['data_'.$lang], true);
-			// deep sort the array https://gitter.im/chillerlan/gw2hero.es?at=56c3dcfbfdaaf5f17c0b331d
+
+			// deep sort the array
+			// https://gitter.im/chillerlan/gw2hero.es?at=56c3dcfbfdaaf5f17c0b331d
 			$item['data_'.$lang] = array_sort_recursive($item['data_'.$lang]);
+
 			// strip out weird double spaces from item names
-			$item['data_'.$lang]['name'] = str_replace([chr(194).chr(160), '  '], ' ', $item['data_'.$lang]['name']);
+			// https://gitter.im/arenanet/api-cdi?at=56dc3e56126367383571545d
+			$old_name = $item['data_'.$lang]['name'];
+			$new_name = str_replace([chr(194).chr(160), '  '], ' ', $old_name);
+			$item['@metadata']['name_replacement'][$lang] = $old_name !== $new_name;
+			$item['data_'.$lang]['name'] = $new_name;
 		}
 
 		// ... -> diff
 
 		$file_id = explode('/', str_replace(['https://render.guildwars2.com/file/', '.png'], '', $item['data_en']['icon']));
 
+
+		// php7: $unlock_id = $item['data_en']['details']['recipe_id'] ?? $item['data_en']['details']['color_id'] ?? 0;
 		switch(true){
 			case isset($item['data_en']['details']['recipe_id']) :
 				$unlock_id = $item['data_en']['details']['recipe_id'];
@@ -114,7 +124,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		}
 
 
-		$insert = [
+		return [
 			'signature'        => $file_id[0],
 			'file_id'          => $file_id[1],
 			'rarity'           => $item['data_en']['rarity'],
@@ -137,11 +147,11 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 			'data_es'          => json_encode($item['data_es']),
 			'data_fr'          => json_encode($item['data_fr']),
 			'data_zh'          => json_encode($item['data_zh']),
+			'metadata'         => json_encode($item['@metadata']),
 			'updated'          => 1,
 			'id'               => $item['data_en']['id'],
 		];
 
-		return $insert;
 	}
 
 	/**
@@ -150,7 +160,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 	 * @return int
 	 *
 	 * @link http://wiki.guildwars2.com/wiki/Item_nomenclature
-	 * @todo: fix!
+	 * @link http://xkcd.com/221/
 	 */
 	protected function attribute_combination(array $infix_upgrade){
 		$attributes = array_column($infix_upgrade['attributes'], 'attribute');
@@ -159,6 +169,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 			switch((int)$infix_upgrade['buff']['skill_id']){
 				// Condition Duration is only available as major attribute, so put it on top
 				case 16631:
+				case 25542:
 					array_unshift($attributes, 'ConditionDuration');
 					break;
 				// Boon duration is only a minor attribute, so add it to the end

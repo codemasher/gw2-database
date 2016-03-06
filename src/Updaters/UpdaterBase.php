@@ -12,8 +12,8 @@
 namespace chillerlan\GW2DB\Updaters;
 
 use chillerlan\Database\DBOptions;
+use chillerlan\Database\Drivers\MySQLi\MySQLiDriver;
 use chillerlan\Database\Traits\DatabaseTrait;
-use chillerlan\GW2DB\Database\Drivers\GW2MySQLiDriver;
 use chillerlan\TinyCurl\Traits\RequestTrait;
 use Dotenv\Dotenv;
 
@@ -23,8 +23,8 @@ use Dotenv\Dotenv;
 class UpdaterBase{
 	use DatabaseTrait, RequestTrait;
 
-	const CONCURRENT    = 15;
-	const CHUNK_SIZE    = 200;
+	const CONCURRENT    = 7;
+	const CHUNK_SIZE    = 75;
 	const CONFIGDIR     = __DIR__.'/../../config';
 	const STORAGEDIR    = __DIR__.'/../../storage';
 	const CACERT        = __DIR__.'/../../config/update-me-cacert.pem';
@@ -32,9 +32,9 @@ class UpdaterBase{
 	const API_BASE      = 'https://api.guildwars2.com/v2/';
 
 	/**
-	 * @var \chillerlan\GW2DB\Database\Drivers\GW2MySQLiDriver
+	 * @var \chillerlan\Database\Drivers\MySQLi\MySQLiDriver
 	 */
-	protected $GW2MySQLiDriver;
+	protected $MySQLiDriver;
 
 	/**
 	 * @var float
@@ -55,7 +55,7 @@ class UpdaterBase{
 			'password' => getenv('DB_MYSQLI_PASSWORD'),
 		]);
 
-		$this->GW2MySQLiDriver = $this->dbconnect(GW2MySQLiDriver::class, $dbOptions);
+		$this->MySQLiDriver = $this->dbconnect(MySQLiDriver::class, $dbOptions);
 	}
 
 	/**
@@ -84,7 +84,7 @@ class UpdaterBase{
 			throw new UpdaterException('failed to get /v2/'.$endpoint);
 		}
 
-		$this->GW2MySQLiDriver->multi_callback(
+		$this->MySQLiDriver->multi_callback(
 			'INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)',
 			$response->json,
 			function ($item){

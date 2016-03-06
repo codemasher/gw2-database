@@ -43,7 +43,6 @@ class TempUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 
 		$options = new MultiRequestOptions;
 		$options->ca_info     = self::CACERT;
-		$options->base_url    = self::API_BASE.'items/?';
 		$options->window_size = self::CONCURRENT;
 
 		$this->logToCLI(__METHOD__.': multirequest start');
@@ -92,7 +91,7 @@ class TempUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 			// insert the data as soon as we receive it
 			// this will result in a couple more database writes but won't block the responses much
 			$sql   = 'UPDATE '.self::ITEM_TEMP_TABLE.' SET `name_'.$lang.'` = ?, `data_'.$lang.'` = ? WHERE `id` = ?';
-			$query = $this->GW2MySQLiDriver->multi_callback($sql, $response->json, function($item){
+			$query = $this->MySQLiDriver->multi_callback($sql, $response->json, function($item){
 				return [
 					$item->name,
 					json_encode($item),
@@ -135,7 +134,7 @@ class TempUpdater extends UpdaterBase implements UpdaterInterface, MultiResponse
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		if($items = $this->GW2MySQLiDriver->raw('SELECT `id` FROM '.self::ITEM_TEMP_TABLE.' WHERE `blacklist` = 0', 'id', true, true)){
+		if($items = $this->MySQLiDriver->raw('SELECT `id` FROM '.self::ITEM_TEMP_TABLE.' WHERE `blacklist` = 0', 'id', true, true)){
 
 			array_map(function($chunk){
 				foreach(self::API_LANGUAGES as $lang){
