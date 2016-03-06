@@ -24,7 +24,7 @@ date_default_timezone_set('UTC');
 mb_internal_encoding('UTF-8');
 
 $updaters = [
-#	TempUpdater::class,
+	TempUpdater::class,
 	CreateDB::class,
 ];
 
