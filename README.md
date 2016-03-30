@@ -1,5 +1,9 @@
 #gw2-database
 
+[![version][packagist-badge]][packagist]
+[![license][license-badge]][license]
+[![Gitter][gitter-badge]][gitter]
+
 [packagist-badge]: https://img.shields.io/packagist/v/chillerlan/gw2-database.svg
 [packagist]: https://packagist.org/packages/chillerlan/gw2-database
 [license-badge]: https://img.shields.io/packagist/l/codemasher/gw2-database.svg
