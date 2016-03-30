@@ -6,7 +6,7 @@
 
 [packagist-badge]: https://img.shields.io/packagist/v/chillerlan/gw2-database.svg
 [packagist]: https://packagist.org/packages/chillerlan/gw2-database
-[license-badge]: https://img.shields.io/packagist/l/codemasher/gw2-database.svg
+[license-badge]: https://img.shields.io/packagist/l/chillerlan/gw2-database.svg
 [license]: https://github.com/codemasher/gw2-database/blob/master/LICENSE
 [gitter-badge]: https://img.shields.io/gitter/room/nwjs/nw.js.svg
 [gitter]: https://gitter.im/chillerlan/gw2hero.es
