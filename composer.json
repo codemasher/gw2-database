@@ -17,7 +17,7 @@
 		"php": ">=5.6.0",
 		"chillerlan/database": "dev-master",
 		"chillerlan/php-curl": "dev-master",
-		"gw2treasures/gw2tools": "dev-master",
+		"gw2treasures/gw2tools": "dev-smiley",
 		"vlucas/phpdotenv": "2.2.*"
 	},
 	"require-dev": {
