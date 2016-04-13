@@ -1,7 +1,8 @@
 <?php
 /**
+ * Class UpdateItemDB
  *
- * @filesource   CreateDB.php
+ * @filesource   UpdateItemDB.php
  * @created      25.02.2016
  * @package      chillerlan\GW2DB\Updaters\Items
  * @author       Smiley <smiley@chillerlan.net>
@@ -11,15 +12,9 @@
 
 namespace chillerlan\GW2DB\Updaters\Items;
 
-use chillerlan\GW2DB\Updaters\UpdaterBase;
-use chillerlan\GW2DB\Updaters\UpdaterInterface;
+use chillerlan\GW2DB\Updaters\UpdaterAbstract;
 
-/**
- * Class CreateDB
- */
-class CreateDB extends UpdaterBase implements UpdaterInterface{
-	const ITEM_TEMP_TABLE = 'gw2_items_temp';
-	const ITEM_TABLE      = 'items_gw2treasures';
+class UpdateItemDB extends UpdaterAbstract{
 
 	protected $temp_items = [];
 	protected $old_items  = [];
@@ -33,8 +28,8 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 		$this->refreshIDs('items', self::ITEM_TABLE);
 
 		// fetch both, old and new items
-		$this->old_items  = $this->MySQLiDriver->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.self::ITEM_TABLE, 'id', true, true);
-		$this->temp_items = $this->MySQLiDriver->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.self::ITEM_TEMP_TABLE, 'id', true, true);
+		$this->old_items  = $this->DBDriverInterface->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.self::ITEM_TABLE, 'id', true, true);
+		$this->temp_items = $this->DBDriverInterface->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.self::ITEM_TEMP_TABLE, 'id', true, true);
 
 		// get the attribute combinations
 
@@ -60,8 +55,8 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 			return $combination;
 		};
 
-		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM `gw2_attribute_combinations`';
-		$this->attribute_combinations = array_map($callback, $this->MySQLiDriver->raw($sql, 'id'));
+		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM '.self::ITEM_ATTRIBUTE_COMBO;
+		$this->attribute_combinations = array_map($callback, $this->DBDriverInterface->raw($sql, 'id'));
 
 		// update
 		$sql = 'UPDATE '.self::ITEM_TABLE.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
@@ -70,7 +65,7 @@ class CreateDB extends UpdaterBase implements UpdaterInterface{
 					`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?, `data_zh` = ?, 
 					`metadata` = ?, `updated` = ? WHERE `id` = ?';
 
-		$this->MySQLiDriver->multi_callback($sql, $this->temp_items, [$this, 'callback']);
+		$this->DBDriverInterface->multi_callback($sql, $this->temp_items, [$this, 'callback']);
 
 		$this->logToCLI(__METHOD__.': end');
 	}
