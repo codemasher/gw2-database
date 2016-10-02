@@ -17,8 +17,8 @@ interface UpdaterInterface{
 	const API_BASE      = 'https://api.guildwars2.com/v2';
 	const API_LANGUAGES = ['de', 'en', 'es', 'fr', 'zh'];
 
-	const CONCURRENT    = 7;
-	const CHUNK_SIZE    = 50;
+	const CONCURRENT    = 250;
+	const CHUNK_SIZE    = 200;
 
 	const CONTINENTS = [1, 2];
 

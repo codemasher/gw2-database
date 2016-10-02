@@ -7,6 +7,8 @@
  * @license      MIT
  */
 
+namespace chillerlan\GW2DB\Helpers;
+
 
 /**
  * @param array $arr1
