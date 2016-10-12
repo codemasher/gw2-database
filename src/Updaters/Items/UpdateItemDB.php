@@ -90,7 +90,7 @@ class UpdateItemDB extends UpdaterAbstract{
 
 			// deep sort the array
 			// https://gitter.im/chillerlan/gw2hero.es?at=56c3dcfbfdaaf5f17c0b331d
-			$item['data_'.$lang] = array_sort_recursive($item['data_'.$lang]);
+			$item['data_'.$lang] = \chillerlan\GW2DB\Helpers\array_sort_recursive($item['data_'.$lang]);
 
 			// strip out weird double spaces from item names
 			// https://gitter.im/arenanet/api-cdi?at=56dc3e56126367383571545d

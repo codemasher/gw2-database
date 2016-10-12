@@ -11,7 +11,7 @@
 namespace chillerlan\GW2DBCLI;
 
 /**
- * Checks wether the script is running in CLI mode.
+ * Checks whether the script is running in CLI mode.
  */
 if(!function_exists('is_cli')){
 	function is_cli(){

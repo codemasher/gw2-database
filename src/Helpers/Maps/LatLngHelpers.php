@@ -3,7 +3,7 @@
  * Class LatLngHelpers
  *
  * @filesource   LatLngHelpers.php
- * @package      GW2Treasures\GW2Tools\Maps
+ * @package      chillerlan\GW2DB\Helpers\Maps
  * @created      10.04.2016
  * @author       Smiley <smiley@chillerlan.net>
  * @copyright    2016 Smiley
@@ -19,7 +19,7 @@ class LatLngHelpers{
 	const CONTINENT_MISTS = 2;
 	const MAX_ZOOM = [
 		self::CONTINENT_TYRIA => 7,
-		self::CONTINENT_MISTS => 6,
+		self::CONTINENT_MISTS => 6, // @todo https://github.com/arenanet/api-cdi/issues/308
 	];
 
 	/**
@@ -43,7 +43,7 @@ class LatLngHelpers{
 	 * @param int   $floorID      from API
 	 *
 	 * @return array
-	 * @throws \GW2Treasures\GW2Tools\Maps\MapsException
+	 * @throws \chillerlan\GW2DB\Helpers\Maps\MapsException
 	 */
 	public function getTiles(array $view, $zoom, $continentID, $floorID){
 		$tiles = [];
