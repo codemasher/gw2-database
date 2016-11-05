@@ -14,7 +14,7 @@
 **[Installation instructions](https://github.com/codemasher/gw2-database/issues/5#issuecomment-203640540)**
 
 ## Requirements
-- **PHP 5.6+** or **PHP 7**
+- **PHP 7+**
 - **MySQL** or **MariaDB**
 
 ##Thanks
