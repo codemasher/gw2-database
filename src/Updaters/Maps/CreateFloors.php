@@ -13,8 +13,8 @@
 namespace chillerlan\GW2DB\Updaters\Maps;
 
 use chillerlan\GW2DB\Updaters\UpdaterAbstract;
-use chillerlan\TinyCurl\Response\MultiResponseHandlerInterface;
-use chillerlan\TinyCurl\Response\ResponseInterface;
+use chillerlan\TinyCurl\MultiResponseHandlerInterface;
+use chillerlan\TinyCurl\ResponseInterface;
 use chillerlan\TinyCurl\URL;
 
 class CreateFloors extends UpdaterAbstract implements MultiResponseHandlerInterface{
@@ -47,7 +47,7 @@ class CreateFloors extends UpdaterAbstract implements MultiResponseHandlerInterf
 
 		if(in_array($info->http_code, [200, 206], true)){
 			list($continent, $floor) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
-			
+
 			$sql = 'INSERT INTO '.self::MAPS_FLOOR_TABLE.' (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)';
 			$this->DBDriverInterface->prepared($sql, [
 				'continent_id' => $continent,

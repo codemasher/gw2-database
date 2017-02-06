@@ -15,7 +15,7 @@ namespace chillerlan\GW2DB\Updaters;
 use chillerlan\Database\Drivers\DBDriverInterface;
 use chillerlan\TinyCurl\MultiRequest;
 use chillerlan\TinyCurl\MultiRequestOptions;
-use chillerlan\TinyCurl\Traits\RequestTrait;
+use chillerlan\TinyCurl\RequestTrait;
 
 abstract class UpdaterAbstract implements UpdaterInterface{
 	use RequestTrait;

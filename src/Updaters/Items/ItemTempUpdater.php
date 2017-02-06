@@ -14,8 +14,8 @@ namespace chillerlan\GW2DB\Updaters\Items;
 
 use chillerlan\GW2DB\Updaters\UpdaterAbstract;
 use chillerlan\GW2DB\Updaters\UpdaterException;
-use chillerlan\TinyCurl\Response\MultiResponseHandlerInterface;
-use chillerlan\TinyCurl\Response\ResponseInterface;
+use chillerlan\TinyCurl\MultiResponseHandlerInterface;
+use chillerlan\TinyCurl\ResponseInterface;
 use chillerlan\TinyCurl\URL;
 
 class ItemTempUpdater extends UpdaterAbstract implements MultiResponseHandlerInterface{
@@ -56,7 +56,7 @@ class ItemTempUpdater extends UpdaterAbstract implements MultiResponseHandlerInt
 	 *
 	 * However, the return value will not be checked, so make sure you return valid URLs. ;)
 	 *
-	 * @param \chillerlan\TinyCurl\Response\ResponseInterface $response
+	 * @param \chillerlan\TinyCurl\ResponseInterface $response
 	 *
 	 * @return bool|\chillerlan\TinyCurl\URL
 	 * @internal
@@ -87,7 +87,7 @@ class ItemTempUpdater extends UpdaterAbstract implements MultiResponseHandlerInt
 				$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
 				return new URL($info->url);
 			}
-			
+
 			$this->logToCLI('['.$lang.'] '.md5($response->info->url).' updated');
 			return true;
 		}

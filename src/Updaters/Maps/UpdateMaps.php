@@ -14,8 +14,8 @@ namespace chillerlan\GW2DB\Updaters\Maps;
 
 use chillerlan\GW2DB\Updaters\UpdaterAbstract;
 use chillerlan\GW2DB\Updaters\UpdaterException;
-use chillerlan\TinyCurl\Response\MultiResponseHandlerInterface;
-use chillerlan\TinyCurl\Response\ResponseInterface;
+use chillerlan\TinyCurl\MultiResponseHandlerInterface;
+use chillerlan\TinyCurl\ResponseInterface;
 use chillerlan\TinyCurl\URL;
 
 class UpdateMaps extends UpdaterAbstract implements MultiResponseHandlerInterface{

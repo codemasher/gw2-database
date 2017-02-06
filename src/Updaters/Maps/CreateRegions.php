@@ -14,8 +14,8 @@ namespace chillerlan\GW2DB\Updaters\Maps;
 
 use chillerlan\GW2DB\Updaters\UpdaterAbstract;
 use chillerlan\GW2DB\Updaters\UpdaterException;
-use chillerlan\TinyCurl\Response\MultiResponseHandlerInterface;
-use chillerlan\TinyCurl\Response\ResponseInterface;
+use chillerlan\TinyCurl\MultiResponseHandlerInterface;
+use chillerlan\TinyCurl\ResponseInterface;
 use chillerlan\TinyCurl\URL;
 
 class CreateRegions extends UpdaterAbstract implements MultiResponseHandlerInterface{
@@ -58,7 +58,7 @@ class CreateRegions extends UpdaterAbstract implements MultiResponseHandlerInter
 
 			foreach($data->maps as $map){
 				$maps[] = $map->id;
-				
+
 				$sql = 'INSERT INTO '.self::MAPS_TABLE.' (`map_id`, `continent_id`, `floor_id`, 
 				    `region_id`,`default_floor`, `map_rect`, `continent_rect`, `min_level`,
 				    `max_level`) VALUES (?,?,?,?,?,?,?,?,?)';
