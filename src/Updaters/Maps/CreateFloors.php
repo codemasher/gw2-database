@@ -12,12 +12,10 @@
 
 namespace chillerlan\GW2DB\Updaters\Maps;
 
-use chillerlan\GW2DB\Updaters\UpdaterAbstract;
-use chillerlan\TinyCurl\MultiResponseHandlerInterface;
-use chillerlan\TinyCurl\ResponseInterface;
-use chillerlan\TinyCurl\URL;
+use chillerlan\GW2DB\Updaters\MultiRequestAbstract;
+use chillerlan\TinyCurl\{ResponseInterface, URL};
 
-class CreateFloors extends UpdaterAbstract implements MultiResponseHandlerInterface{
+class CreateFloors extends MultiRequestAbstract{
 
 	public function init(){
 		$this->starttime = microtime(true);
@@ -26,7 +24,7 @@ class CreateFloors extends UpdaterAbstract implements MultiResponseHandlerInterf
 		// get floor URLs
 		$urls = [];
 		foreach(self::CONTINENTS as $continent){
-			$response = $this->fetch(self::API_BASE.'/continents/'.$continent);
+			$response = $this->request->fetch(new URL(self::API_BASE.'/continents/'.$continent));
 			if($response->info->http_code === 200){
 				$floordata = $response->json;
 				if(is_array($floordata->floors)){
@@ -37,33 +35,30 @@ class CreateFloors extends UpdaterAbstract implements MultiResponseHandlerInterf
 			}
 		}
 
-		$this->DBDriverInterface->raw('TRUNCATE TABLE '.self::MAPS_FLOOR_TABLE);
+		$this->DBDriverInterface->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAP_FLOORS'));
 		$this->fetchMulti($urls);
 		$this->logToCLI(__METHOD__.': end');
 	}
 
-	public function handleResponse(ResponseInterface $response){
+	/**
+	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 *
+	 * @return mixed
+	 */
+	protected function processResponse(ResponseInterface $response){
 		$info = $response->info;
 
-		if(in_array($info->http_code, [200, 206], true)){
-			list($continent, $floor) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
+		list($continent, $floor) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
 
-			$sql = 'INSERT INTO '.self::MAPS_FLOOR_TABLE.' (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)';
-			$this->DBDriverInterface->prepared($sql, [
-				'continent_id' => $continent,
-				'floor_id'     => $floor,
-				'regions'      => json_encode($response->json),
-			]);
+		$sql = 'INSERT INTO '.getenv('TABLE_GW2_MAP_FLOORS').' (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)';
+		$this->DBDriverInterface->prepared($sql, [
+			'continent_id' => $continent,
+			'floor_id'     => $floor,
+			'regions'      => json_encode($response->json),
+		]);
 
-			$this->logToCLI('updating continent #'.$continent.', floor '.$floor.', data: '.$response->body->content);
-			return true;
-		}
-		elseif($info->http_code === 502){
-			$this->logToCLI('URL readded due to a 502. ('.$info->url.')');
-			return new URL($info->url);
-		}
+		$this->logToCLI('updating continent #'.$continent.', floor '.$floor.', data: '.$response->body->content);
 
-		return false;
+		return true;
 	}
-
 }

@@ -13,12 +13,11 @@
 namespace chillerlan\GW2DB\Updaters;
 
 use chillerlan\Database\Drivers\DBDriverInterface;
-use chillerlan\TinyCurl\MultiRequest;
-use chillerlan\TinyCurl\MultiRequestOptions;
-use chillerlan\TinyCurl\RequestTrait;
+use chillerlan\TinyCurl\{
+	Request, URL
+};
 
 abstract class UpdaterAbstract implements UpdaterInterface{
-	use RequestTrait;
 
 	/**
 	 * @var \chillerlan\Database\Drivers\DBDriverInterface
@@ -26,38 +25,28 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 	protected $DBDriverInterface;
 
 	/**
+	 * @var \chillerlan\TinyCurl\Request
+	 */
+	protected $request;
+
+	/**
 	 * @var float
 	 */
 	protected $starttime;
 
 	/**
-	 * @var array
-	 */
-	protected $urls = [];
-
-	/**
-	 * CA Root Certificates for use with CURL/SSL
-	 *
-	 * @var string
-	 * @link https://curl.haxx.se/ca/cacert.pem
-	 */
-	protected $cacert;
-
-	/**
 	 * UpdaterAbstract constructor.
 	 *
+	 * @link https://curl.haxx.se/ca/cacert.pem
 	 *
 	 * @param \chillerlan\Database\Drivers\DBDriverInterface $DBDriverInterface
-	 *
-	 * @param string                                         $cacert
-	 *
-	 * @throws \chillerlan\Database\DBException
+	 * @param \chillerlan\TinyCurl\Request                   $request
 	 */
-	public function __construct(DBDriverInterface $DBDriverInterface, $cacert){
+	public function __construct(DBDriverInterface $DBDriverInterface, Request $request){
 		$this->DBDriverInterface = $DBDriverInterface;
 		$this->DBDriverInterface->connect();
-		$this->cacert = $cacert;
-		$this->setRequestCA($this->cacert);
+
+		$this->request = $request;
 	}
 
 	/**
@@ -79,7 +68,8 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 	protected function refreshIDs($endpoint, $table){
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start ('.$endpoint.', '.$table.')');
-		$response = $this->fetch(self::API_BASE.'/'.$endpoint);
+
+		$response = $this->request->fetch(new URL(self::API_BASE.'/'.$endpoint));
 		$this->logToCLI(__METHOD__.': response');
 
 		if($response->info->http_code !== 200){
@@ -87,51 +77,15 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 		}
 
 		$this->DBDriverInterface->multi_callback(
-			'INSERT IGNORE INTO '.$table.' (`id`) VALUES (?)',
+			'INSERT IGNORE INTO `'.$table.'` (`id`) VALUES (?)',
 			$response->json,
-			function ($item){
-				return [$item];
+			function($id){
+				return [$id];
 			}
 		);
 
 		$this->logToCLI(__METHOD__.': end');
 	}
 
-	/**
-	 * @param array $urls
-	 *
-	 * @return \chillerlan\TinyCurl\MultiRequestOptions
-	 * @throws \chillerlan\TinyCurl\RequestException
-	 */
-	protected function fetchMulti(array $urls){
-		$this->logToCLI('multirequest: start');
-		$options = new MultiRequestOptions;
-		$options->ca_info     = $this->cacert;
-		$options->window_size = self::CONCURRENT;
-
-		$multiRequest = new MultiRequest($options);
-		// solving the hen-egg problem, feed the hen with the egg!
-		$multiRequest->setHandler($this);
-
-		$multiRequest->fetch($urls);
-		$this->logToCLI('multirequest: end');
-	}
-
-	/**
-	 * discard the response when it's impossible to determine the language
-	 *
-	 * @param $lang
-	 *
-	 * @return bool
-	 */
-	protected function checkResponseLanguage($lang){
-
-		if(!in_array($lang, self::API_LANGUAGES)){
-			$this->logToCLI('invalid language, URL discarded.');
-			return false;
-		}
-
-		return true;
-	}
 
 }

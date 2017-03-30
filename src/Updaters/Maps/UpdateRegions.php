@@ -12,19 +12,16 @@
 
 namespace chillerlan\GW2DB\Updaters\Maps;
 
-use chillerlan\GW2DB\Updaters\UpdaterAbstract;
-use chillerlan\GW2DB\Updaters\UpdaterException;
-use chillerlan\TinyCurl\MultiResponseHandlerInterface;
-use chillerlan\TinyCurl\ResponseInterface;
-use chillerlan\TinyCurl\URL;
+use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
+use chillerlan\TinyCurl\{ResponseInterface, URL};
 
-class UpdateRegions extends UpdaterAbstract implements MultiResponseHandlerInterface{
+class UpdateRegions extends MultiRequestAbstract{
 
 	public function init(){
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$sql = 'SELECT `continent_id`, `floor_id`, `region_id` FROM '.self::MAPS_REGION_TABLE;
+		$sql = 'SELECT `continent_id`, `floor_id`, `region_id` FROM '.getenv('TABLE_GW2_REGIONS');
 
 		if(!($regions = $this->DBDriverInterface->raw($sql)) || !is_array($regions)){
 			throw new UpdaterException('failed to fetch regions from db, please run CreateRegions before');
@@ -42,43 +39,39 @@ class UpdateRegions extends UpdaterAbstract implements MultiResponseHandlerInter
 		$this->logToCLI(__METHOD__.': end');
 	}
 
-	public function handleResponse(ResponseInterface $response){
+	/**
+	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 *
+	 * @return mixed
+	 */
+	protected function processResponse(ResponseInterface $response){
 		$info = $response->info;
 
-		if(in_array($info->http_code, [200, 206], true)){
-			parse_str(parse_url($info->url, PHP_URL_QUERY), $params);
+		parse_str(parse_url($info->url, PHP_URL_QUERY), $params);
 
-			$lang = $response->headers->{'content-language'} ?: $params['lang'];
+		$lang = $response->headers->{'content-language'} ?: $params['lang'];
 
-			if(!$this->checkResponseLanguage($lang)){
-				return false;
-			}
-
-			$data = $response->json;
-
-			list($continent, $floor, $region) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
-
-			$sql = 'UPDATE '.self::MAPS_REGION_TABLE.' SET `name_'.$lang.'` = ? WHERE `continent_id` = ? AND `region_id` = ? AND `floor_id` = ?';
-
-			$values = [
-				'name_'.$lang  => $data->name,
-				'continent_id' => $continent,
-				'region_id'    => $region,
-				'floor_id'     => $floor,
-			];
-
-			$this->DBDriverInterface->prepared($sql, $values);
-
-			$this->logToCLI('updated region #'.$region.' ('.$lang.'), continent: '.$continent.', floor: '.$floor);
-
-			return true;
-		}
-		elseif($info->http_code === 502){
-			$this->logToCLI('URL readded due to a 502. ('.$info->url.')');
-			return new URL($info->url);
+		if(!$this->checkResponseLanguage($lang)){
+			return false;
 		}
 
-		return false;
+		$data = $response->json;
+
+		list($continent, $floor, $region) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
+
+		$sql = 'UPDATE '.getenv('TABLE_GW2_REGIONS').' SET `name_'.$lang.'` = ? WHERE `continent_id` = ? AND `region_id` = ? AND `floor_id` = ?';
+
+		$values = [
+			'name_'.$lang  => $data->name,
+			'continent_id' => $continent,
+			'region_id'    => $region,
+			'floor_id'     => $floor,
+		];
+
+		$this->DBDriverInterface->prepared($sql, $values);
+
+		$this->logToCLI('updated region #'.$region.' ('.$lang.'), continent: '.$continent.', floor: '.$floor);
+
+		return true;
 	}
-
 }

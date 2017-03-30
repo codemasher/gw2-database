@@ -12,11 +12,12 @@
 namespace chillerlan\GW2DBTests;
 
 use chillerlan\GW2DB\Helpers\Chatlinks\Chatlink;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Class ChatlinkTest
  */
-class ChatlinkTest extends \PHPUnit_Framework_TestCase{
+class ChatlinkTest extends TestCase{
 
 	/**
 	 * @var \chillerlan\GW2DB\Helpers\Chatlinks\Chatlink
@@ -29,7 +30,8 @@ class ChatlinkTest extends \PHPUnit_Framework_TestCase{
 
 	public function testDecode(){
 		var_dump($this->chatlink->decode('[&AgG/twDgthIAAAZgAADnXwAA]'));
+
+		$this->markTestSkipped('@todo...');
 	}
 
-	// @todo...
 }

@@ -13,8 +13,9 @@
 namespace chillerlan\GW2DBTests;
 
 use chillerlan\GW2DB\Helpers\Maps\LatLngHelpers;
+use PHPUnit\Framework\TestCase;
 
-class LatLngHelpersTest extends \PHPUnit_Framework_TestCase{
+class LatLngHelpersTest extends TestCase{
 
 	/**
 	 * @var \chillerlan\GW2DB\Helpers\Maps\LatLngHelpers

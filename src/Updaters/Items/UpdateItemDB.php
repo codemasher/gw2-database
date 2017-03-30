@@ -25,11 +25,11 @@ class UpdateItemDB extends UpdaterAbstract{
 		$this->logToCLI(__METHOD__.': start');
 
 		// refresh IDs in the item table
-		$this->refreshIDs('items', self::ITEM_TABLE);
+		$this->refreshIDs('items', getenv('TABLE_GW2_ITEMS'));
 
 		// fetch both, old and new items
-		$this->old_items  = $this->DBDriverInterface->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.self::ITEM_TABLE, 'id', true, true);
-		$this->temp_items = $this->DBDriverInterface->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.self::ITEM_TEMP_TABLE, 'id', true, true);
+		$this->old_items  = $this->DBDriverInterface->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.getenv('TABLE_GW2_ITEMS'), 'id', true, true);
+		$this->temp_items = $this->DBDriverInterface->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.getenv('TABLE_GW2_ITEMS_TEMP'), 'id', true, true);
 
 		// get the attribute combinations
 
@@ -55,11 +55,11 @@ class UpdateItemDB extends UpdaterAbstract{
 			return $combination;
 		};
 
-		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM '.self::ITEM_ATTRIBUTE_COMBO;
+		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM '.getenv('TABLE_GW2_ATTRIBUTE_COMBO');
 		$this->attribute_combinations = array_map($callback, $this->DBDriverInterface->raw($sql, 'id'));
 
 		// update
-		$sql = 'UPDATE '.self::ITEM_TABLE.' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
+		$sql = 'UPDATE '.getenv('TABLE_GW2_ITEMS').' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
 					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_combination` = ?, `unlock_id` = ?,
 					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `name_zh` = ?, 
 					`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?, `data_zh` = ?, 
@@ -71,11 +71,11 @@ class UpdateItemDB extends UpdaterAbstract{
 	}
 
 	/**
-	 * @param \stdClass $item
+	 * @param array $item
 	 *
-	 * @return array
+	 * @return array|bool
 	 */
-	public function callback($item){
+	public function callback(array $item){
 
 		// slow down things...
 		foreach(self::API_LANGUAGES as $lang){
@@ -105,19 +105,7 @@ class UpdateItemDB extends UpdaterAbstract{
 		$file_id = explode('/', str_replace(['https://render.guildwars2.com/file/', '.png'], '', $item['data_en']['icon']));
 
 
-		// php7: $unlock_id = $item['data_en']['details']['recipe_id'] ?? $item['data_en']['details']['color_id'] ?? 0;
-		switch(true){
-			case isset($item['data_en']['details']['recipe_id']) :
-				$unlock_id = $item['data_en']['details']['recipe_id'];
-				break;
-			case isset($item['data_en']['details']['color_id'])  :
-				$unlock_id = $item['data_en']['details']['color_id'];
-				break;
-			default:
-				$unlock_id = 0;
-				break;
-		}
-
+		$unlock_id = $item['data_en']['details']['recipe_id'] ?? $item['data_en']['details']['color_id'] ?? 0;
 
 		return [
 			'signature'        => $file_id[0],
