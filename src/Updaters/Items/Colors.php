@@ -31,11 +31,16 @@ class Colors extends MultiRequestAbstract{
 	public function init(){
 		$this->refreshIDs('colors', getenv('TABLE_GW2_COLORS'));
 
-		$sql = 'SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`update_time`) AS `update_time`, UNIX_TIMESTAMP(`date_added`) AS `date_added` FROM `'.getenv('TABLE_GW2_COLORS').'`';
+		$this->colors = $this->query->select
+			->cols([
+				'id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
+				'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']
+			])
+			->from([getenv('TABLE_GW2_COLORS')])
+			->execute('id')
+			->__toArray();
 
-		$this->colors = $this->DBDriverInterface->raw($sql, 'id', true, true);
-
-		if(!$this->colors || !is_array($this->colors)){
+		if(count($this->colors) < 1){
 			throw new UpdaterException('failed to fetch color data from db');
 		}
 
@@ -48,7 +53,7 @@ class Colors extends MultiRequestAbstract{
 		}
 
 		$this->fetchMulti($urls);
-		$this->updateStats();
+#		$this->updateStats();
 		$this->logToCLI(__METHOD__.': end');
 	}
 
@@ -68,25 +73,28 @@ class Colors extends MultiRequestAbstract{
 			return false;
 		}
 
-		$sql = 'UPDATE '.getenv('TABLE_GW2_COLORS').' SET `name_'.$this->lang.'`= ?, `data_'.$this->lang.'`= ? WHERE `id` = ?';
+		$result = $this->query->update
+			->table(getenv('TABLE_GW2_COLORS'))
+			->set(['name_'.$this->lang, 'data_'.$this->lang], false)
+			->where('id', '?', '=', false)
+			->execute(null, $response->json_array, [$this, 'callback']);
 
-		$query = $this->DBDriverInterface->multi_callback($sql, $response->json_array, [$this, 'callback']);
-
-		if(!$query){
+		if(!$result){
 			$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
 
 			return new URL($info->url);
 		}
 
 		if(!empty($this->changes)){
-			$sql = 'INSERT INTO `'.getenv('TABLE_GW2_DIFF').'` (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
 
-			if($this->DBDriverInterface->multi($sql, $this->changes)){
+			if($this->query->insert->into(getenv('TABLE_GW2_DIFF'))->values($this->changes)->execute()){
 				$this->changes = [];
 			}
+
 		}
 
 		$this->logToCLI('['.$this->lang.'] '.md5($info->url).' updated');
+		return true;
 	}
 
 	/**
@@ -95,16 +103,18 @@ class Colors extends MultiRequestAbstract{
 	 * @return array
 	 */
 	public function callback(array $color){
-		$old   = json_decode(@$this->colors[$color['id']]['data_'.$this->lang], true) ?? [];
+		$old_data = $this->colors[$color['id']]['data_'.$this->lang] ?? false;
+
+		$old   = !$old_data ? [] : json_decode($old_data, true);
 		$diff  = Helpers\array_diff_assoc_recursive($old, $color, true);
 
 		if(!empty($old) && !empty($diff)){
 			$this->changes[] = [
-				$color['id'],
-				'color',
-				$this->lang,
-				$this->colors[$color['id']]['update_time'] ?? $this->colors[$color['id']]['date_added'] ?? time(),
-				json_encode($old),
+				'db_id' => $color['id'],
+				'type'  => 'color',
+				'lang'  => $this->lang,
+				'date'  => $this->colors[$color['id']]['update_time'] ?? $this->colors[$color['id']]['date_added'] ?? time(),
+				'data'  => json_encode($old),
 			];
 
 			$this->logToCLI('['.$this->lang.'] color changed #'.$color['id'].' '.print_r($diff, true));
@@ -123,42 +133,29 @@ class Colors extends MultiRequestAbstract{
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
 	 */
 	protected function updateStats(){
-		$sql = 'SELECT `data_en` FROM `'.getenv('TABLE_GW2_COLORS').'`';
+		$this->colors = $this->query->select->cols(['data_en'])->from([getenv('TABLE_GW2_COLORS')])->execute();
 
-		$this->colors = $this->DBDriverInterface->raw($sql, null, true, true);
-
-		if(!$this->colors || !is_array($this->colors)){
+		if(!$this->colors || $this->colors->length === 0){
 			throw new UpdaterException('failed to fetch color data from db');
 		}
 
-		$sql = 'UPDATE '.getenv('TABLE_GW2_COLORS').' SET `hue`= ?, `material`= ?, `rarity`= ?, `updated`= ? WHERE `id` = ?';
+		$result = $this->query->update
+			->table(getenv('TABLE_GW2_COLORS'))
+			->set(['hue', 'material', 'rarity', 'updated'], false)
+			->where('id', '?', false, false)
+			->execute(null, $this->colors, function(array $color):array{
+				$data = json_decode($color['data_en']);
 
-		$query = $this->DBDriverInterface->multi_callback($sql, $this->colors, [$this, 'statsCallback']);
+				list($hue, $material, $rarity) = !empty($data->categories) ? $data->categories : [null, null, null];
 
-		if(!$query){
+				$this->logToCLI('updated color stats #'.$data->id);
+
+				return [$hue, $material, $rarity, 1, $data->id];
+			});
+
+		if(!$result){
 			throw new UpdaterException('failed to update stats');
 		}
-	}
-
-	/**
-	 * @param array $color
-	 *
-	 * @return array
-	 */
-	public function statsCallback(array $color):array{
-		$data = json_decode($color['data_en']);
-
-		list($hue, $material, $rarity) = !empty($data->categories) ? $data->categories : [null, null, null];
-
-		$this->logToCLI('updated color stats #'.$data->id);
-
-		return [
-			$hue,
-			$material,
-			$rarity,
-			1,
-			$data->id,
-		];
 	}
 
 }

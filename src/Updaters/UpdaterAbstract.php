@@ -12,10 +12,9 @@
 
 namespace chillerlan\GW2DB\Updaters;
 
+use chillerlan\Database\DBQuery;
 use chillerlan\Database\Drivers\DBDriverInterface;
-use chillerlan\TinyCurl\{
-	Request, URL
-};
+use chillerlan\TinyCurl\{Request, URL};
 
 abstract class UpdaterAbstract implements UpdaterInterface{
 
@@ -28,6 +27,11 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 	 * @var \chillerlan\TinyCurl\Request
 	 */
 	protected $request;
+
+	/**
+	 * @var \chillerlan\Database\DBQuery
+	 */
+	protected $query;
 
 	/**
 	 * @var float
@@ -45,6 +49,7 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 	public function __construct(DBDriverInterface $DBDriverInterface, Request $request){
 		$this->DBDriverInterface = $DBDriverInterface;
 		$this->DBDriverInterface->connect();
+		$this->query = new DBQuery($this->DBDriverInterface);
 
 		$this->request = $request;
 	}

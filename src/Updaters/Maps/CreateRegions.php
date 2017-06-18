@@ -21,9 +21,11 @@ class CreateRegions extends MultiRequestAbstract{
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$sql = 'SELECT * FROM '.getenv('TABLE_GW2_MAP_FLOORS');
+		$floors = $this->query->select
+			->from([getenv('TABLE_GW2_MAP_FLOORS')])
+			->execute();
 
-		if(!($floors = $this->DBDriverInterface->raw($sql)) || !is_array($floors)){
+		if(!$floors || $floors->length === 0){
 			throw new UpdaterException('failed to fetch floors from db, please run CreateFloors before');
 		}
 
@@ -60,35 +62,35 @@ class CreateRegions extends MultiRequestAbstract{
 		foreach($data->maps as $map){
 			$maps[] = $map->id;
 
-			$sql = 'INSERT INTO '.getenv('TABLE_GW2_MAPS').' (`map_id`, `continent_id`, `floor_id`, 
-				    `region_id`,`default_floor`, `map_rect`, `continent_rect`, `min_level`,
-				    `max_level`) VALUES (?,?,?,?,?,?,?,?,?)';
-
-			$this->DBDriverInterface->prepared($sql, [
-				'map_id'         => $map->id,
-				'continent_id'   => $continent,
-				'floor_id'       => $floor,
-				'region_id'      => $region,
-				'default_floor'  => $map->default_floor,
-				'map_rect'       => json_encode($map->map_rect),
-				'continent_rect' => json_encode($map->continent_rect),
-				'min_level'      => $map->min_level,
-				'max_level'      => $map->max_level,
-			]);
+			$this->query->insert
+				->into(getenv('TABLE_GW2_MAPS'))
+				->values([
+					'map_id'         => $map->id,
+					'continent_id'   => $continent,
+					'floor_id'       => $floor,
+					'region_id'      => $region,
+					'default_floor'  => $map->default_floor,
+					'map_rect'       => json_encode($map->map_rect),
+					'continent_rect' => json_encode($map->continent_rect),
+					'min_level'      => $map->min_level,
+					'max_level'      => $map->max_level,
+				])
+				->execute();
 
 			$this->logToCLI('added map #'.$map->id.', continent: '.$continent.', floor: '.$floor.', region: '.$region);
 		}
 
-		$sql = 'INSERT INTO '.getenv('TABLE_GW2_REGIONS').' (`continent_id`, `floor_id`, `region_id`,`label_coord`, `maps`, `name_en`) VALUES(?,?,?,?,?,?)';
-
-		$this->DBDriverInterface->prepared($sql, [
-			'continent_id' => $continent,
-			'floor_id'     => $floor,
-			'region_id'    => $region,
-			'label_coord'  => json_encode($data->label_coord),
-			'maps'         => json_encode($maps),
-			'name_en'      => $data->name,
-		]);
+		$this->query->insert
+			->into(getenv('TABLE_GW2_REGIONS'))
+			->values([
+				'continent_id' => $continent,
+				'floor_id'     => $floor,
+				'region_id'    => $region,
+				'label_coord'  => json_encode($data->label_coord),
+				'maps'         => json_encode($maps),
+				'name_en'      => $data->name,
+			])
+			->execute();
 
 		return true;
 	}

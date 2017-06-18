@@ -50,12 +50,14 @@ class CreateFloors extends MultiRequestAbstract{
 
 		list($continent, $floor) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
 
-		$sql = 'INSERT INTO '.getenv('TABLE_GW2_MAP_FLOORS').' (`continent_id`, `floor_id`, `regions`) VALUES (?,?,?)';
-		$this->DBDriverInterface->prepared($sql, [
-			'continent_id' => $continent,
-			'floor_id'     => $floor,
-			'regions'      => json_encode($response->json),
-		]);
+		$this->query->insert
+			->into(getenv('TABLE_GW2_MAP_FLOORS'))
+			->values([
+				'continent_id' => $continent,
+				'floor_id'     => $floor,
+				'regions'      => json_encode($response->json),
+			])
+			->execute();
 
 		$this->logToCLI('updating continent #'.$continent.', floor '.$floor.', data: '.$response->body->content);
 

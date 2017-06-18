@@ -12,6 +12,7 @@
 
 namespace chillerlan\GW2DB\Updaters\Items;
 
+use chillerlan\Database\DBResultRow;
 use chillerlan\GW2DB\Helpers;
 use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
 use chillerlan\TinyCurl\{ResponseInterface, URL};
@@ -32,11 +33,16 @@ class Skins extends MultiRequestAbstract{
 	public function init(){
 		$this->refreshIDs('skins', getenv('TABLE_GW2_SKINS'));
 
-		$sql = 'SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`update_time`) AS `update_time`, UNIX_TIMESTAMP(`date_added`) AS `date_added` FROM `'.getenv('TABLE_GW2_SKINS').'`';
+		$this->skins = $this->query->select
+			->cols([
+				'id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
+				'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']
+			])
+			->from([getenv('TABLE_GW2_SKINS')])
+			->execute('id')
+			->__toArray();
 
-		$this->skins = $this->DBDriverInterface->raw($sql, 'id', true, true);
-
-		if(!$this->skins || !is_array($this->skins)){
+		if(count($this->skins) < 1){
 			throw new UpdaterException('failed to fetch skin data from db');
 		}
 
@@ -69,20 +75,25 @@ class Skins extends MultiRequestAbstract{
 			return false;
 		}
 
-		$sql = 'UPDATE '.getenv('TABLE_GW2_SKINS').' SET `name_'.$this->lang.'`= ?, `data_'.$this->lang.'`= ? WHERE `id` = ?';
+		$result = $this->query->update
+			->table(getenv('TABLE_GW2_SKINS'))
+			->set(['name_'.$this->lang, 'data_'.$this->lang], false)
+			->where('id', '?', '=', false)
+			->execute(null, $response->json_array, [$this, 'callback']);
 
-		$query = $this->DBDriverInterface->multi_callback($sql, $response->json_array, [$this, 'callback']);
-
-		if(!$query){
+		if(!$result){
 			$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
 
 			return new URL($info->url);
 		}
 
 		if(!empty($this->changes)){
-			$sql = 'INSERT INTO `'.getenv('TABLE_GW2_DIFF').'` (`db_id`, `type`, `lang`, `date`, `data`) VALUES (?,?,?,?,?)';
 
-			if($this->DBDriverInterface->multi($sql, $this->changes)){
+			$result = $this->query->insert
+				->into(getenv('TABLE_GW2_DIFF'))
+				->values($this->changes)->execute();
+
+			if($result){
 				$this->changes = [];
 			}
 		}
@@ -99,17 +110,20 @@ class Skins extends MultiRequestAbstract{
 	 */
 	public function callback(array $skin):array{
 		$skin = Helpers\array_sort_recursive($skin);
-		$old  = Helpers\array_sort_recursive(json_decode(@$this->skins[$skin['id']]['data_'.$this->lang], true) ?? []);
+
+		$old_data = $this->skins[$skin['id']]['data_'.$this->lang] ?? false;
+
+		$old  = !$old_data ? [] : Helpers\array_sort_recursive(json_decode($old_data, true));
 		$diff = Helpers\array_diff_assoc_recursive($old, $skin, true);
 
 		if(!empty($old) && !empty($diff)){
 
 			$this->changes[] = [
-				$skin['id'],
-				'skin',
-				$this->lang,
-				$this->skins[$skin['id']]['update_time'] ?? $this->skins[$skin['id']]['date_added'] ?? time(),
-				json_encode($old),
+				'db_id' => $skin['id'],
+				'type' => 'skin',
+				'lang' => $this->lang,
+				'date' => $this->skins[$skin['id']]['update_time'] ?? $this->skins[$skin['id']]['date_added'] ?? time(),
+				'data' => json_encode($old),
 			];
 
 			$this->logToCLI('['.$this->lang.'] skin changed #'.$skin['id'].' '.print_r($diff, true));
@@ -128,31 +142,34 @@ class Skins extends MultiRequestAbstract{
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
 	 */
 	protected function updateStats(){
-		$sql = 'SELECT `data_en` FROM `'.getenv('TABLE_GW2_SKINS').'`';
 
-		$this->skins = $this->DBDriverInterface->raw($sql, null, true, true);
+		$this->skins = $this->query->select
+			->cols(['data_en'])
+			->from([getenv('TABLE_GW2_SKINS')])
+			->execute();
 
-		if(!$this->skins || !is_array($this->skins)){
+		if(!$this->skins || $this->skins->length === 0){
 			throw new UpdaterException('failed to fetch skin data from db');
 		}
 
-		$sql = 'UPDATE '.getenv('TABLE_GW2_SKINS').' SET `signature`= ?, `file_id`= ?, `type`= ?, 
-				`subtype`= ?, `properties` = ?, `updated`= ? WHERE `id` = ?';
+		$result = $this->query->update
+			->table(getenv('TABLE_GW2_SKINS'))
+			->set(['signature', 'file_id', 'type', 'subtype', 'properties', 'updated'], false)
+			->where('id', '?', '=', false)
+			->execute(null, $this->skins, [$this, 'statsCallback']);
 
-		$query = $this->DBDriverInterface->multi_callback($sql, $this->skins, [$this, 'statsCallback']);
-
-		if(!$query){
+		if(!$result){
 			throw new UpdaterException('failed to update stats');
 		}
 	}
 
 	/**
-	 * @param array $skin
+	 * @param \chillerlan\Database\DBResultRow $skin
 	 *
 	 * @return array
 	 */
-	public function statsCallback(array $skin):array{
-		$data = json_decode($skin['data_en']);
+	public function statsCallback(DBResultRow $skin):array{
+		$data = json_decode($skin->data_en);
 
 		$file_id = explode('/', str_replace(['https://render.guildwars2.com/file/', '.png'], '', $data->icon ?? ''));
 

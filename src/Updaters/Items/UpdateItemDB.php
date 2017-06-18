@@ -16,8 +16,8 @@ use chillerlan\GW2DB\Updaters\UpdaterAbstract;
 
 class UpdateItemDB extends UpdaterAbstract{
 
-	protected $temp_items = [];
-	protected $old_items  = [];
+	protected $temp_items;
+	protected $old_items;
 	protected $attribute_combinations = [];
 
 	public function init(){
@@ -28,17 +28,28 @@ class UpdateItemDB extends UpdaterAbstract{
 		$this->refreshIDs('items', getenv('TABLE_GW2_ITEMS'));
 
 		// fetch both, old and new items
-		$this->old_items  = $this->DBDriverInterface->raw('SELECT `id`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh` FROM '.getenv('TABLE_GW2_ITEMS'), 'id', true, true);
-		$this->temp_items = $this->DBDriverInterface->raw('SELECT `id`, `blacklist`, `data_de`, `data_en`, `data_es`, `data_fr`, `data_zh`, UNIX_TIMESTAMP(`response_time`) AS `response_time` FROM '.getenv('TABLE_GW2_ITEMS_TEMP'), 'id', true, true);
+		$this->old_items = $this->query->select
+			->cols(['id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh'])
+			->from([getenv('TABLE_GW2_ITEMS')])
+			->execute('id')
+			->__toArray();
+
+		$this->temp_items = $this->query->select
+			->cols([
+				'id', 'blacklist', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
+				'response_time' => ['response_time', 'UNIX_TIMESTAMP']
+			])
+			->from([getenv('TABLE_GW2_ITEMS_TEMP')])
+			->execute('id')
+			->__toArray();
 
 		// get the attribute combinations
+		$combos = $this->query->select
+			->cols(['id', 'attribute1', 'attribute2', 'attribute3'])
+			->from([getenv('TABLE_GW2_ATTRIBUTE_COMBO')])
+			->execute('id');
 
-		/**
-		 * @param \stdClass $combo
-		 *
-		 * @return array
-		 */
-		$callback = function($combo){
+		foreach($combos as $combo){
 			$combination = [
 				'id'         => $combo->id,
 				'attributes' => [$combo->attribute1],
@@ -52,20 +63,19 @@ class UpdateItemDB extends UpdaterAbstract{
 				}
 			}
 
-			return $combination;
-		};
-
-		$sql = 'SELECT `id`, `attribute1`, `attribute2`, `attribute3` FROM '.getenv('TABLE_GW2_ATTRIBUTE_COMBO');
-		$this->attribute_combinations = array_map($callback, $this->DBDriverInterface->raw($sql, 'id'));
+			$this->attribute_combinations[$combo->id] = $combination;
+		}
 
 		// update
-		$sql = 'UPDATE '.getenv('TABLE_GW2_ITEMS').' SET `signature` = ?, `file_id` = ?, `rarity` = ?, `weight` = ?, `type` = ?,
-					`subtype` = ?, `unlock_type` = ?, `level` = ?, `value` = ?, `pvp` = ?, `attr_combination` = ?, `unlock_id` = ?,
-					`name_de` = ?, `name_en` = ?, `name_es` = ?, `name_fr` = ?, `name_zh` = ?, 
-					`data_de` = ?, `data_en` = ?, `data_es` = ?, `data_fr` = ?, `data_zh` = ?, 
-					`metadata` = ?, `updated` = ? WHERE `id` = ?';
-
-		$this->DBDriverInterface->multi_callback($sql, $this->temp_items, [$this, 'callback']);
+		$this->query->update
+			->table(getenv('TABLE_GW2_ITEMS'))
+			->set([
+				'signature', 'file_id', 'rarity', 'weight', 'type', 'subtype', 'unlock_type', 'level',
+				'value', 'pvp', 'attr_combination', 'unlock_id', 'name_de', 'name_en', 'name_es', 'name_fr',
+				'name_zh', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh', 'metadata', 'updated'
+			], false)
+			->where('id', '?', '=', false)
+			->execute(null, $this->temp_items, [$this, 'callback']);
 
 		$this->logToCLI(__METHOD__.': end');
 	}
@@ -104,22 +114,21 @@ class UpdateItemDB extends UpdaterAbstract{
 
 		$file_id = explode('/', str_replace(['https://render.guildwars2.com/file/', '.png'], '', $item['data_en']['icon']));
 
-
-		$unlock_id = $item['data_en']['details']['recipe_id'] ?? $item['data_en']['details']['color_id'] ?? 0;
+		$this->logToCLI('item #'.$item['data_en']['id'].' ('.$item['data_en']['name'].') updated');
 
 		return [
 			'signature'        => $file_id[0],
 			'file_id'          => $file_id[1],
 			'rarity'           => $item['data_en']['rarity'],
-			'weight'           => isset($item['data_en']['details']['weight_class']) ? $item['data_en']['details']['weight_class'] : null,
+			'weight'           => $item['data_en']['details']['weight_class'] ?? null,
 			'type'             => $item['data_en']['type'],
-			'subtype'          => isset($item['data_en']['details']['type']) ? $item['data_en']['details']['type'] : null,
-			'unlock_type'      => isset($item['data_en']['details']['unlock_type']) ? $item['data_en']['details']['unlock_type'] : null,
+			'subtype'          => $item['data_en']['details']['type'] ?? null,
+			'unlock_type'      => $item['data_en']['details']['unlock_type'] ?? null,
 			'level'            => $item['data_en']['level'],
 			'value'            => $item['data_en']['vendor_value'],
 			'pvp'              => in_array('Pvp', $item['data_en']['game_types']) && in_array('PvpLobby', $item['data_en']['game_types']),
 			'attr_combination' => isset($item['data_en']['details']['infix_upgrade']) ? $this->attribute_combination($item['data_en']['details']['infix_upgrade']) : 0,
-			'unlock_id'        => $unlock_id,
+			'unlock_id'        => $item['data_en']['details']['recipe_id'] ?? $item['data_en']['details']['color_id'] ?? 0,
 			'name_de'          => $item['data_de']['name'],
 			'name_en'          => $item['data_en']['name'],
 			'name_es'          => $item['data_es']['name'],

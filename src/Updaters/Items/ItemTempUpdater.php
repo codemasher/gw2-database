@@ -22,15 +22,19 @@ class ItemTempUpdater extends MultiRequestAbstract{
 		$this->logToCLI(__METHOD__.': start');
 		$this->refreshIDs('items', getenv('TABLE_GW2_ITEMS_TEMP'));
 
-		$sql = 'SELECT `id` FROM '.getenv('TABLE_GW2_ITEMS_TEMP').' WHERE `blacklist` = 0';
+		$result = $this->query->select
+			->cols(['id'])
+			->from([getenv('TABLE_GW2_ITEMS_TEMP')])
+			->where('blacklist', 0)
+			->execute();
 
-		if(!($items = $this->DBDriverInterface->raw($sql, 'id', true, true)) || !is_array($items)){
+		if(!$result || $result->length === 0){
 			throw new UpdaterException('failed to fetch item IDs from db');
 		}
 
 		$urls = [];
 
-		foreach(array_chunk($items, self::CHUNK_SIZE) as $chunk){
+		foreach($result->chunk(self::CHUNK_SIZE) as $chunk){
 			foreach(self::API_LANGUAGES as $lang){
 				$urls[] = new URL(self::API_BASE.'/items', ['lang' => $lang, 'ids' => implode(',', array_column($chunk, 'id'))]);
 			}
@@ -58,13 +62,16 @@ class ItemTempUpdater extends MultiRequestAbstract{
 
 		// insert the data as soon as we receive it
 		// this will result in a couple more database writes but won't block the responses much
-		$sql   = 'UPDATE '.getenv('TABLE_GW2_ITEMS_TEMP').' SET `name_'.$lang.'` = ?, `data_'.$lang.'` = ? WHERE `id` = ?';
-		$query = $this->DBDriverInterface->multi_callback($sql, $response->json, function($item){
-			return [$item->name, json_encode($item), $item->id];
-		});
+		$q = $this->query->update
+			->table(getenv('TABLE_GW2_ITEMS_TEMP'))
+			->set(['name_'.$lang, 'data_'.$lang], false)
+			->where('id', '?', '=', false)
+			->execute(null, $response->json, function($item){
+				return [$item->name, json_encode($item), $item->id];
+			});
 
 		// retry if the insert failed for whatever reason
-		if(!$query){
+		if(!$q){
 			$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
 			return new URL($info->url);
 		}

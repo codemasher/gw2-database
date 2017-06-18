@@ -42,11 +42,13 @@ class Recipes extends MultiRequestAbstract{
 	public function init(){
 		$this->refreshIDs('recipes', getenv('TABLE_GW2_RECIPES'));
 
-		$sql = 'SELECT `id`, `data`, UNIX_TIMESTAMP(`update_time`) AS `update_time`, UNIX_TIMESTAMP(`date_added`) AS `date_added` FROM `'.getenv('TABLE_GW2_RECIPES').'`';
+		$this->recipes = $this->query->select
+			->cols(['id', 'data', 'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']])
+			->from([getenv('TABLE_GW2_RECIPES')])
+			->execute('id')
+			->__toArray();
 
-		$this->recipes = $this->DBDriverInterface->raw($sql, 'id', true, true);
-
-		if(!$this->recipes || !is_array($this->recipes)){
+		if(count($this->recipes) < 1){
 			throw new UpdaterException('failed to fetch recipe IDs from db');
 		}
 
@@ -73,24 +75,30 @@ class Recipes extends MultiRequestAbstract{
 			return false;
 		}
 
-		$sql = 'UPDATE `'.getenv('TABLE_GW2_RECIPES').'` SET `output_id` = ?, `output_count` = ?, `disciplines`= ?,
-				`rating` = ?, `type` = ?, `from_item` = ?, `ing_id_1` = ?, `ing_count_1` = ?,
-				`ing_id_2` = ?, `ing_count_2` = ?, `ing_id_3` = ?, `ing_count_3` = ?,
-				`ing_id_4` = ?, `ing_count_4` = ?, `data` = ?, `updated` = ?
-				WHERE `id` = ?';
+		$result = $this->query->update
+			->table(getenv('TABLE_GW2_RECIPES'))
+			->set([
+				'output_id', 'output_count', 'disciplines', 'rating', 'type', 'from_item',
+				'ing_id_1', 'ing_count_1', 'ing_id_2', 'ing_count_2', 'ing_id_3', 'ing_count_3',
+				'ing_id_4', 'ing_count_4', 'data', 'updated'
+			], false)
+			->where('id', '?', '=', false)
+			->execute(null, $json, [$this, 'callback']);
 
-		$query = $this->DBDriverInterface->multi_callback($sql, $json, [$this, 'callback']);
-
-		if(!$query){
+		if(!$result){
 			$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
 
 			return new URL($info->url);
 		}
 
 		if(!empty($this->changes)){
-			$sql = 'INSERT INTO `'.getenv('TABLE_GW2_DIFF').'` (`db_id`, `type`, `date`, `data`) VALUES (?,?,?,?)';
 
-			if($this->DBDriverInterface->multi($sql, $this->changes)){
+			$result = $this->query->insert
+				->into(getenv('TABLE_GW2_DIFF'))
+				->values($this->changes)
+				->execute();
+
+			if($result){
 				$this->changes = [];
 			}
 		}
@@ -105,16 +113,19 @@ class Recipes extends MultiRequestAbstract{
 	 */
 	public function callback(array $recipe):array{
 		$recipe = $this->sortRecipe($recipe);
-		$old    = $this->sortRecipe(json_decode(@$this->recipes[$recipe['id']]['data'], true) ?? []);
+
+		$old_data = $this->recipes[$recipe['id']]['data'] ?? false;
+
+		$old    = !$old_data ? [] : $this->sortRecipe(json_decode($old_data, true));
 		$diff   = Helpers\array_diff_assoc_recursive($old, $recipe, true);
 
 		if(!empty($old) && !empty($diff)){
 
 			$this->changes[] = [
-				$recipe['id'],
-				'recipe',
-				$this->recipes[$recipe['id']]['update_time'] ?? $this->recipes[$recipe['id']]['date_added'] ?? time(),
-				json_encode($old),
+				'db_id' => $recipe['id'],
+				'type' => 'recipe',
+				'date' => $this->recipes[$recipe['id']]['update_time'] ?? $this->recipes[$recipe['id']]['date_added'] ?? time(),
+				'data' => json_encode($old),
 			];
 
 			$this->logToCLI('recipe changed #'.$recipe['id'].' '.print_r($diff, true));

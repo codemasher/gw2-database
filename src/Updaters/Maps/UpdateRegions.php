@@ -21,9 +21,12 @@ class UpdateRegions extends MultiRequestAbstract{
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$sql = 'SELECT `continent_id`, `floor_id`, `region_id` FROM '.getenv('TABLE_GW2_REGIONS');
+		$regions = $this->query->select
+			->cols(['continent_id', 'region_id', 'floor_id'])
+			->from([getenv('TABLE_GW2_REGIONS')])
+			->execute();
 
-		if(!($regions = $this->DBDriverInterface->raw($sql)) || !is_array($regions)){
+		if(!$regions || !$regions->length === 0){
 			throw new UpdaterException('failed to fetch regions from db, please run CreateRegions before');
 		}
 
@@ -55,20 +58,17 @@ class UpdateRegions extends MultiRequestAbstract{
 			return false;
 		}
 
-		$data = $response->json;
-
 		list($continent, $floor, $region) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
 
-		$sql = 'UPDATE '.getenv('TABLE_GW2_REGIONS').' SET `name_'.$lang.'` = ? WHERE `continent_id` = ? AND `region_id` = ? AND `floor_id` = ?';
-
-		$values = [
-			'name_'.$lang  => $data->name,
-			'continent_id' => $continent,
-			'region_id'    => $region,
-			'floor_id'     => $floor,
-		];
-
-		$this->DBDriverInterface->prepared($sql, $values);
+		$this->query->update
+			->table(getenv('TABLE_GW2_REGIONS'))
+			->set([
+				'name_'.$lang  => $response->json->name,
+			])
+			->where('continent_id', $continent)
+			->where('region_id', $region)
+			->where('floor_id', $floor)
+			->execute();
 
 		$this->logToCLI('updated region #'.$region.' ('.$lang.'), continent: '.$continent.', floor: '.$floor);
 
