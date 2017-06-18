@@ -12,6 +12,7 @@
 
 namespace chillerlan\GW2DB\Updaters\Items;
 
+use chillerlan\Database\DBResultRow;
 use chillerlan\GW2DB\Helpers;
 use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
 use chillerlan\TinyCurl\{ResponseInterface, URL};
@@ -53,7 +54,7 @@ class Colors extends MultiRequestAbstract{
 		}
 
 		$this->fetchMulti($urls);
-#		$this->updateStats();
+		$this->updateStats();
 		$this->logToCLI(__METHOD__.': end');
 	}
 
@@ -142,9 +143,9 @@ class Colors extends MultiRequestAbstract{
 		$result = $this->query->update
 			->table(getenv('TABLE_GW2_COLORS'))
 			->set(['hue', 'material', 'rarity', 'updated'], false)
-			->where('id', '?', false, false)
-			->execute(null, $this->colors, function(array $color):array{
-				$data = json_decode($color['data_en']);
+			->where('id', '?', '=', false)
+			->execute(null, $this->colors, function(DBResultRow $color):array{
+				$data = json_decode($color->data_en);
 
 				list($hue, $material, $rarity) = !empty($data->categories) ? $data->categories : [null, null, null];
 
