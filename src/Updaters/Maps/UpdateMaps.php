@@ -21,7 +21,7 @@ class UpdateMaps extends MultiRequestAbstract{
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$regions = $this->query->select
+		$regions = $this->db->select
 			->cols(['continent_id', 'region_id', 'floor_id'])
 			->from([getenv('TABLE_GW2_REGIONS')])
 			->execute();
@@ -66,7 +66,7 @@ class UpdateMaps extends MultiRequestAbstract{
 
 			foreach($data as $map){
 
-				$this->query->update
+				$this->db->update
 					->table(getenv('TABLE_GW2_MAPS'))
 					->set([
 						'name_'.$lang  => $map->name,

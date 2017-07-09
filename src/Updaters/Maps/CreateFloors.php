@@ -35,7 +35,7 @@ class CreateFloors extends MultiRequestAbstract{
 			}
 		}
 
-		$this->DBDriverInterface->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAP_FLOORS'));
+		$this->db->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAP_FLOORS'));
 		$this->fetchMulti($urls);
 		$this->logToCLI(__METHOD__.': end');
 	}
@@ -50,7 +50,7 @@ class CreateFloors extends MultiRequestAbstract{
 
 		list($continent, $floor) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
 
-		$this->query->insert
+		$this->db->insert
 			->into(getenv('TABLE_GW2_MAP_FLOORS'))
 			->values([
 				'continent_id' => $continent,

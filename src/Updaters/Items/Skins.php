@@ -12,7 +12,7 @@
 
 namespace chillerlan\GW2DB\Updaters\Items;
 
-use chillerlan\Database\DBResultRow;
+use chillerlan\Database\ResultRow;
 use chillerlan\GW2DB\Helpers;
 use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
 use chillerlan\TinyCurl\{ResponseInterface, URL};
@@ -33,7 +33,7 @@ class Skins extends MultiRequestAbstract{
 	public function init(){
 		$this->refreshIDs('skins', getenv('TABLE_GW2_SKINS'));
 
-		$this->skins = $this->query->select
+		$this->skins = $this->db->select
 			->cols([
 				'id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
 				'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']
@@ -75,7 +75,7 @@ class Skins extends MultiRequestAbstract{
 			return false;
 		}
 
-		$result = $this->query->update
+		$result = $this->db->update
 			->table(getenv('TABLE_GW2_SKINS'))
 			->set(['name_'.$this->lang, 'data_'.$this->lang], false)
 			->where('id', '?', '=', false)
@@ -89,7 +89,7 @@ class Skins extends MultiRequestAbstract{
 
 		if(!empty($this->changes)){
 
-			$result = $this->query->insert
+			$result = $this->db->insert
 				->into(getenv('TABLE_GW2_DIFF'))
 				->values($this->changes)->execute();
 
@@ -143,7 +143,7 @@ class Skins extends MultiRequestAbstract{
 	 */
 	protected function updateStats(){
 
-		$this->skins = $this->query->select
+		$this->skins = $this->db->select
 			->cols(['data_en'])
 			->from([getenv('TABLE_GW2_SKINS')])
 			->execute();
@@ -152,11 +152,11 @@ class Skins extends MultiRequestAbstract{
 			throw new UpdaterException('failed to fetch skin data from db');
 		}
 
-		$result = $this->query->update
+		$result = $this->db->update
 			->table(getenv('TABLE_GW2_SKINS'))
 			->set(['signature', 'file_id', 'type', 'subtype', 'properties', 'updated'], false)
 			->where('id', '?', '=', false)
-			->execute(null, $this->skins, [$this, 'statsCallback']);
+			->execute(null, $this->skins->__toArray(), [$this, 'statsCallback']);
 
 		if(!$result){
 			throw new UpdaterException('failed to update stats');
@@ -164,12 +164,12 @@ class Skins extends MultiRequestAbstract{
 	}
 
 	/**
-	 * @param \chillerlan\Database\DBResultRow $skin
+	 * @param array $skin
 	 *
 	 * @return array
 	 */
-	public function statsCallback(DBResultRow $skin):array{
-		$data = json_decode($skin->data_en);
+	public function statsCallback(array $skin):array{
+		$data = json_decode($skin['data_en']);
 
 		$file_id = explode('/', str_replace(['https://render.guildwars2.com/file/', '.png'], '', $data->icon ?? ''));
 

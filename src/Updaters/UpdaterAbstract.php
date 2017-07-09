@@ -12,26 +12,20 @@
 
 namespace chillerlan\GW2DB\Updaters;
 
-use chillerlan\Database\DBQuery;
-use chillerlan\Database\Drivers\DBDriverInterface;
+use chillerlan\Database\Connection;
 use chillerlan\TinyCurl\{Request, URL};
 
 abstract class UpdaterAbstract implements UpdaterInterface{
 
 	/**
-	 * @var \chillerlan\Database\Drivers\DBDriverInterface
+	 * @var \chillerlan\Database\Connection
 	 */
-	protected $DBDriverInterface;
+	protected $db;
 
 	/**
 	 * @var \chillerlan\TinyCurl\Request
 	 */
 	protected $request;
-
-	/**
-	 * @var \chillerlan\Database\DBQuery
-	 */
-	protected $query;
 
 	/**
 	 * @var float
@@ -43,13 +37,12 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 	 *
 	 * @link https://curl.haxx.se/ca/cacert.pem
 	 *
-	 * @param \chillerlan\Database\Drivers\DBDriverInterface $DBDriverInterface
+	 * @param \chillerlan\Database\Connection $DBDriverInterface
 	 * @param \chillerlan\TinyCurl\Request                   $request
 	 */
-	public function __construct(DBDriverInterface $DBDriverInterface, Request $request){
-		$this->DBDriverInterface = $DBDriverInterface;
-		$this->DBDriverInterface->connect();
-		$this->query = new DBQuery($this->DBDriverInterface);
+	public function __construct(Connection $DBDriverInterface, Request $request){
+		$this->db = $DBDriverInterface;
+		$this->db->connect();
 
 		$this->request = $request;
 	}
@@ -67,7 +60,6 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 	 * @param string $endpoint
 	 * @param string $table
 	 *
-	 * @throws \chillerlan\Database\DBException
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
 	 */
 	protected function refreshIDs($endpoint, $table){
@@ -81,7 +73,7 @@ abstract class UpdaterAbstract implements UpdaterInterface{
 			throw new UpdaterException('failed to get /v2/'.$endpoint);
 		}
 
-		$this->DBDriverInterface->multi_callback(
+		$this->db->multiCallback(
 			'INSERT IGNORE INTO `'.$table.'` (`id`) VALUES (?)',
 			$response->json,
 			function($id){

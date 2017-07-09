@@ -42,7 +42,7 @@ class Recipes extends MultiRequestAbstract{
 	public function init(){
 		$this->refreshIDs('recipes', getenv('TABLE_GW2_RECIPES'));
 
-		$this->recipes = $this->query->select
+		$this->recipes = $this->db->select
 			->cols(['id', 'data', 'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']])
 			->from([getenv('TABLE_GW2_RECIPES')])
 			->execute('id')
@@ -75,7 +75,7 @@ class Recipes extends MultiRequestAbstract{
 			return false;
 		}
 
-		$result = $this->query->update
+		$result = $this->db->update
 			->table(getenv('TABLE_GW2_RECIPES'))
 			->set([
 				'output_id', 'output_count', 'disciplines', 'rating', 'type', 'from_item',
@@ -93,7 +93,7 @@ class Recipes extends MultiRequestAbstract{
 
 		if(!empty($this->changes)){
 
-			$result = $this->query->insert
+			$result = $this->db->insert
 				->into(getenv('TABLE_GW2_DIFF'))
 				->values($this->changes)
 				->execute();

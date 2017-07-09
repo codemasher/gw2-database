@@ -21,7 +21,7 @@ class CreateRegions extends MultiRequestAbstract{
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$floors = $this->query->select
+		$floors = $this->db->select
 			->from([getenv('TABLE_GW2_MAP_FLOORS')])
 			->execute();
 
@@ -40,8 +40,8 @@ class CreateRegions extends MultiRequestAbstract{
 			}
 		}
 
-		$this->DBDriverInterface->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_REGIONS'));
-		$this->DBDriverInterface->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAPS'));
+		$this->db->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_REGIONS'));
+		$this->db->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAPS'));
 
 		$this->fetchMulti($urls);
 		$this->logToCLI(__METHOD__.': end');
@@ -62,7 +62,7 @@ class CreateRegions extends MultiRequestAbstract{
 		foreach($data->maps as $map){
 			$maps[] = $map->id;
 
-			$this->query->insert
+			$this->db->insert
 				->into(getenv('TABLE_GW2_MAPS'))
 				->values([
 					'map_id'         => $map->id,
@@ -80,7 +80,7 @@ class CreateRegions extends MultiRequestAbstract{
 			$this->logToCLI('added map #'.$map->id.', continent: '.$continent.', floor: '.$floor.', region: '.$region);
 		}
 
-		$this->query->insert
+		$this->db->insert
 			->into(getenv('TABLE_GW2_REGIONS'))
 			->values([
 				'continent_id' => $continent,

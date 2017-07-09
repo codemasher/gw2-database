@@ -22,7 +22,7 @@ class ItemTempUpdater extends MultiRequestAbstract{
 		$this->logToCLI(__METHOD__.': start');
 		$this->refreshIDs('items', getenv('TABLE_GW2_ITEMS_TEMP'));
 
-		$result = $this->query->select
+		$result = $this->db->select
 			->cols(['id'])
 			->from([getenv('TABLE_GW2_ITEMS_TEMP')])
 			->where('blacklist', 0)
@@ -34,7 +34,7 @@ class ItemTempUpdater extends MultiRequestAbstract{
 
 		$urls = [];
 
-		foreach($result->chunk(self::CHUNK_SIZE) as $chunk){
+		foreach($result->__chunk(self::CHUNK_SIZE) as $chunk){
 			foreach(self::API_LANGUAGES as $lang){
 				$urls[] = new URL(self::API_BASE.'/items', ['lang' => $lang, 'ids' => implode(',', array_column($chunk, 'id'))]);
 			}
@@ -62,7 +62,7 @@ class ItemTempUpdater extends MultiRequestAbstract{
 
 		// insert the data as soon as we receive it
 		// this will result in a couple more database writes but won't block the responses much
-		$q = $this->query->update
+		$q = $this->db->update
 			->table(getenv('TABLE_GW2_ITEMS_TEMP'))
 			->set(['name_'.$lang, 'data_'.$lang], false)
 			->where('id', '?', '=', false)

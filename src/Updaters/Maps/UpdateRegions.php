@@ -21,7 +21,7 @@ class UpdateRegions extends MultiRequestAbstract{
 		$this->starttime = microtime(true);
 		$this->logToCLI(__METHOD__.': start');
 
-		$regions = $this->query->select
+		$regions = $this->db->select
 			->cols(['continent_id', 'region_id', 'floor_id'])
 			->from([getenv('TABLE_GW2_REGIONS')])
 			->execute();
@@ -60,7 +60,7 @@ class UpdateRegions extends MultiRequestAbstract{
 
 		list($continent, $floor, $region) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
 
-		$this->query->update
+		$this->db->update
 			->table(getenv('TABLE_GW2_REGIONS'))
 			->set([
 				'name_'.$lang  => $response->json->name,

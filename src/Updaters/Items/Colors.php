@@ -12,7 +12,7 @@
 
 namespace chillerlan\GW2DB\Updaters\Items;
 
-use chillerlan\Database\DBResultRow;
+use chillerlan\Database\ResultRow;
 use chillerlan\GW2DB\Helpers;
 use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
 use chillerlan\TinyCurl\{ResponseInterface, URL};
@@ -32,7 +32,7 @@ class Colors extends MultiRequestAbstract{
 	public function init(){
 		$this->refreshIDs('colors', getenv('TABLE_GW2_COLORS'));
 
-		$this->colors = $this->query->select
+		$this->colors = $this->db->select
 			->cols([
 				'id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
 				'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']
@@ -74,7 +74,7 @@ class Colors extends MultiRequestAbstract{
 			return false;
 		}
 
-		$result = $this->query->update
+		$result = $this->db->update
 			->table(getenv('TABLE_GW2_COLORS'))
 			->set(['name_'.$this->lang, 'data_'.$this->lang], false)
 			->where('id', '?', '=', false)
@@ -88,7 +88,7 @@ class Colors extends MultiRequestAbstract{
 
 		if(!empty($this->changes)){
 
-			if($this->query->insert->into(getenv('TABLE_GW2_DIFF'))->values($this->changes)->execute()){
+			if($this->db->insert->into(getenv('TABLE_GW2_DIFF'))->values($this->changes)->execute()){
 				$this->changes = [];
 			}
 
@@ -134,18 +134,18 @@ class Colors extends MultiRequestAbstract{
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
 	 */
 	protected function updateStats(){
-		$this->colors = $this->query->select->cols(['data_en'])->from([getenv('TABLE_GW2_COLORS')])->execute();
+		$this->colors = $this->db->select->cols(['data_en'])->from([getenv('TABLE_GW2_COLORS')])->execute();
 
 		if(!$this->colors || $this->colors->length === 0){
 			throw new UpdaterException('failed to fetch color data from db');
 		}
 
-		$result = $this->query->update
+		$result = $this->db->update
 			->table(getenv('TABLE_GW2_COLORS'))
 			->set(['hue', 'material', 'rarity', 'updated'], false)
 			->where('id', '?', '=', false)
-			->execute(null, $this->colors, function(DBResultRow $color):array{
-				$data = json_decode($color->data_en);
+			->execute(null, $this->colors->__toArray(), function(array $color):array{
+				$data = json_decode($color['data_en']);
 
 				list($hue, $material, $rarity) = !empty($data->categories) ? $data->categories : [null, null, null];
 

@@ -28,13 +28,13 @@ class UpdateItemDB extends UpdaterAbstract{
 		$this->refreshIDs('items', getenv('TABLE_GW2_ITEMS'));
 
 		// fetch both, old and new items
-		$this->old_items = $this->query->select
+		$this->old_items = $this->db->select
 			->cols(['id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh'])
 			->from([getenv('TABLE_GW2_ITEMS')])
 			->execute('id')
 			->__toArray();
 
-		$this->temp_items = $this->query->select
+		$this->temp_items = $this->db->select
 			->cols([
 				'id', 'blacklist', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
 				'response_time' => ['response_time', 'UNIX_TIMESTAMP']
@@ -44,7 +44,7 @@ class UpdateItemDB extends UpdaterAbstract{
 			->__toArray();
 
 		// get the attribute combinations
-		$combos = $this->query->select
+		$combos = $this->db->select
 			->cols(['id', 'attribute1', 'attribute2', 'attribute3'])
 			->from([getenv('TABLE_GW2_ATTRIBUTE_COMBO')])
 			->execute('id');
@@ -67,7 +67,7 @@ class UpdateItemDB extends UpdaterAbstract{
 		}
 
 		// update
-		$this->query->update
+		$this->db->update
 			->table(getenv('TABLE_GW2_ITEMS'))
 			->set([
 				'signature', 'file_id', 'rarity', 'weight', 'type', 'subtype', 'unlock_type', 'level',
