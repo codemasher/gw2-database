@@ -62,7 +62,6 @@ class Chatlink{
 	}
 
 	/**
-	 *
 	 * @param \stdClass $data
 	 *
 	 * @return string
@@ -145,7 +144,7 @@ class Chatlink{
 			if($out->type === self::ITEM){
 				$out->count = array_shift($octets);
 				$skinned = $this->get_bitflag(self::UPGRADE_SKIN, $octets[3]);
-				var_dump([self::UPGRADE_SKIN, $octets[3], $skinned]);
+#				var_dump([self::UPGRADE_SKIN, $octets[3], $skinned]);
 			}
 
 			// read the id chunks
@@ -163,15 +162,16 @@ class Chatlink{
 						if($k === 1 && $skinned){
 							$out->skin = $id;
 						}
-						else if(($k > 0 && $k < 3 && !$skinned) || ($k > 1 && $k < 4 && $skinned)){
+						elseif(($k > 0 && $k < 3 && !$skinned) || ($k > 1 && $k < 4 && $skinned)){
 							$out->upgrades[] = $id;
 						}
-						else{
-							var_dump($id);
-						}
+#						else{
+#							var_dump($id);
+#						}
 					}
 				}
 			}
+
 			return $out;
 		}
 

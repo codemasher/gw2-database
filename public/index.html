@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>GW2 Item Search</title>
+	<style>
+		body { font-size:14px; line-height:1.4em; font-family:"Trebuchet MS",sans-serif; color:#000; min-width: 1000px;}
+		a { text-decoration:none; cursor:pointer; }
+		a:hover { text-decoration: underline; }
+		input, textarea, select { font-family: Consolas, "Liberation Mono", Courier, monospace; border:1px solid #aaa; }
+		input:focus, textarea:focus, select:focus { border:1px solid #ccc; }
+		footer { text-align:center; font-size:75%; line-height:1.2em; margin-top:2em; }
+		label { cursor: pointer; }
+
+		/* rarity colors */
+		.junk { color: #808080; }
+		.basic { color: #000000; }
+		.fine { color: #4f9dfe; }
+		.masterwork { color: #2dc50e; }
+		.rare { color: #f4c900; }
+		.exotic { color: #fda500; }
+		.ascended { color: #fb3e8d; }
+		.legendary { color: #800080; }
+
+		/* css-tables */
+		.table-row { display:table; width:100%; }
+		.table-cell { display:table-cell; overflow:hidden; vertical-align:top; width:auto; padding:0.25em; }
+
+		/* search form */
+		#gw2_search { text-align:center; }
+		#search { font-family:"Trebuchet MS",sans-serif; font-size:200%; width:20em; }
+
+		/* result list */
+		#results { text-align:left; margin-top:1em; }
+		#resultlist { width:500px; overflow-x:auto;}
+		#resultlist > div { white-space:pre; cursor:pointer; }
+		#resultlist > div:hover { background-color:rgba(0,0,0,0.1); }
+		#details { padding-left:0.5em; }
+		.highlight { color:red; background-color:rgba(0,0,0,0.2);}
+		.selected { background-color:rgba(0,0,0,0.1); }
+		.selectable { width:35em; }
+		#indicator { vertical-align:bottom; margin-left:0.5em; }
+		.redlink { color: #ba0000; }
+		.redlink:visited { color: #a55858; }
+		.bluelink { color: #0645ad; }
+		.bluelink:visited { color: #0b0080; }
+
+		/* pagination-links */
+		.p-links-container { line-height:1.25em; text-align:center; margin:1em 0; }
+		.p-links-container > a { text-decoration:none; }
+		.p-links { text-transform:uppercase; background-color:inherit; border: 1px solid #ccc; padding:1px 7px; margin:0 1px; }
+		.p-links:hover, .p-links:active { background-color:rgba(0,0,0,0.1); cursor:pointer; }
+		.p-prevnext { }
+		.p-middle { }
+		.p-current { background-color:rgba(0,0,0,0.2); }
+		.p-current:hover { cursor:default; }
+		.p-inactive { }
+		.p-inactive:hover { cursor:default; }
+	</style>
+</head>
+<body>
+
+<form id="gw2_search">
+	<input id="search" name="search" type="search" placeholder="item search (name/id/chatlinks)" autocomplete="off" /><br />
+	<div>
+		Level:&nbsp;<input class="options" name="min-level" type="number" min="0" max="80" value="" placeholder="0" />&nbsp;-&nbsp;<input class="options" name="max-level" type="number" min="0" max="80" value="" placeholder="80" />
+		<select class="options" id="type" name="type">
+			<option value="">-- type --</option>
+		</select>
+		<select class="options" id="subtype" name="subtype">
+			<option value="">-- subtype --</option>
+		</select>
+		<select class="options" id="attributes" name="attributes">
+			<option value="">-- attributes --</option>
+		</select>
+		<select class="options" id="weight" name="weight">
+			<option value="">-- weight --</option>
+			<option value="Clothing">Clothing</option>
+			<option value="Light">Light</option>
+			<option value="Medium">Medium</option>
+			<option value="Heavy">Heavy</option>
+			<option value="None">None</option>
+		</select>
+		<select class="options" name="rarity">
+			<option value="">-- rarity --</option>
+			<option value="Junk" class="junk">Junk</option>
+			<option value="Basic" class="basic">Basic</option>
+			<option value="Fine" class="fine">Fine</option>
+			<option value="Masterwork" class="masterwork">Masterwork</option>
+			<option value="Rare" class="rare">Rare</option>
+			<option value="Exotic" class="exotic">Exotic</option>
+			<option value="Ascended" class="ascended">Ascended</option>
+			<option value="Legendary" class="legendary">Legendary</option>
+		</select>
+		<select class="options" name="gametype">
+			<option value="">-- gametype --</option>
+			<option value="pve">PvE</option>
+			<option value="pvp">PvP</option>
+		</select>
+		<br/>
+		Limit <input class="options" name="limit" type="number" min="1" max="250" value="50" placeholder="50" />
+		<select class="options" name="orderby">
+			<option value="">-- order by --</option>
+			<option value="id">id</option>
+			<option value="name">name</option>
+			<option value="level">level</option>
+			<option value="rarity">rarity</option>
+			<option value="weight">weight</option>
+			<option value="attr">attributes</option>
+		</select>
+		<select class="options" id="lang" name="lang">
+			<option value="de">de</option>
+			<option value="en" selected="selected">en</option>
+			<option value="es">es</option>
+			<option value="fr">fr</option>
+			<option value="zh">zh</option>
+		</select>
+		<label for="orderdir"><input id="orderdir" class="options" type="checkbox" name="orderdir" value="desc" /> descending order</label>
+	</div>
+	<a id="reset">reset form</a>
+</form>
+<div id="results" class="table-row">
+	<div id="resultlist" class="table-cell"></div>
+	<div id="details" class="table-cell"></div>
+</div>
+<div id="pagination" class="p-links-container"></div>
+<footer>
+	GW2 Item Search by <a target="_blank" href="https://github.com/codemasher">Smiley&trade;</a> (<a target="_blank" href="https://github.com/codemasher/gw2-database/">GitHub repo</a>)<br />
+	hosted by <a target="_blank" href="https://github.com/darthmaim">Darthmaim</a>, using the <a target="_blank" href="https://gw2treasures.com">GW2Treasures</a> database
+</footer>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.3.0/prototype.js"></script>
+<script src="itemsearch.js"></script>
+<script>
+	(function(){
+		new GW2ItemSearch('gw2_search');
+
+//		(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+//		ga('create','UA-43876604-1');ga('send','pageview');ga('set','anonymizeIp',true);
+	})();
+</script>
+</body>
+</html>
