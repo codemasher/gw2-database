@@ -158,8 +158,8 @@ class GW2ItemSearch{
 
 						this.details.update(r.html);
 
-						$$('.selectable').invoke('observe', 'click', ev => {
-							ev.target.select();
+						$$('.selectable').invoke('observe', 'click', evt => {
+							evt.target.select();
 						});
 
 					}
