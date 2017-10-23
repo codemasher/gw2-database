@@ -32,7 +32,7 @@ foreach([
 		UpdateMaps::class,
 		Recipes::class,
 		Skins::class,
-#		Colors::class, // the colors endpoint is disabled https://gitter.im/arenanet/api-cdi?at=59d5780abac826f0543746ab
+		Colors::class,
 	] as $updater){
 	/** @var \chillerlan\GW2DB\Updaters\UpdaterInterface $updater */
 	$updater = new $updater($db, $request);
