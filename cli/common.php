@@ -13,8 +13,8 @@ require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/functions.php';
 
 use chillerlan\Database\{Connection, Options, Drivers\PDO\PDOMySQLDriver, Query\Dialects\MySQLQueryBuilder};
-use Dotenv\Dotenv;
 use chillerlan\SimpleCache\{Cache, Drivers\MemoryCacheDriver};
+use chillerlan\Traits\DotEnv;
 
 if(!is_cli()){
 	throw new \Exception('no way, buddy.');
@@ -23,15 +23,15 @@ if(!is_cli()){
 date_default_timezone_set('UTC');
 mb_internal_encoding('UTF-8');
 
-(new Dotenv(__DIR__.'/../config', '.env'))->load();
+$env = (new DotEnv(__DIR__.'/../config', '.env'))->load();
 
 $db = new Connection(new Options([
 	'driver'       => PDOMySQLDriver::class,
 	'querybuilder' => MySQLQueryBuilder::class,
-	'host'     => getenv('DB_HOST'),
-	'port'     => getenv('DB_PORT'),
-	'database' => getenv('DB_DATABASE'),
-	'username' => getenv('DB_USERNAME'),
-	'password' => getenv('DB_PASSWORD'),
+	'host'     => $env->get('DB_HOST'),
+	'port'     => $env->get('DB_PORT'),
+	'database' => $env->get('DB_DATABASE'),
+	'username' => $env->get('DB_USERNAME'),
+	'password' => $env->get('DB_PASSWORD'),
 ]), new Cache(new MemoryCacheDriver));
 

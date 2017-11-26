@@ -17,10 +17,10 @@
 		"php": ">=7.0.7",
 		"chillerlan/database": "dev-master",
 		"chillerlan/php-curl": "dev-master",
-		"vlucas/phpdotenv": "2.*"
+		"chillerlan/php-traits": "1.0.*"
 	},
 	"require-dev": {
-		"phpunit/phpunit": "6.3.*"
+		"phpunit/phpunit": "6.4.*"
 	},
 	"autoload": {
 		"files": [
