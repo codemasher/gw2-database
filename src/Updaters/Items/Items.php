@@ -26,12 +26,16 @@ class Items extends UpdaterAbstract{
 	/**
 	 * @return void
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 * @throws \chillerlan\Database\Drivers\DriverException
 	 */
 	public function init():void{
 		$this->logger->info($this->processTimer().__METHOD__.': start');
 
 		$this->fetchTempItems();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableItemsTemp);
+
 		$this->refreshItems();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableItems);
 
 		$this->logger->info($this->processTimer().__METHOD__.': end');
 	}

@@ -52,6 +52,7 @@ class Skins extends UpdaterAbstract{
 
 		$this->processURLs();
 		$this->updateStats();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableSkins);
 
 		$this->logger->info(__METHOD__.': end');
 	}

@@ -40,6 +40,7 @@ class CreateFloors extends UpdaterAbstract{
 		$this->db->truncate->table($this->options->tableMapFloors)->query();
 
 		$this->processURLs();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableMapFloors);
 
 		$this->logger->info(__METHOD__.': end');
 	}

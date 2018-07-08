@@ -41,6 +41,7 @@ class UpdateMaps extends UpdaterAbstract{
 		}
 
 		$this->processURLs();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableMaps);
 		$this->logger->info(__METHOD__.': end');
 	}
 

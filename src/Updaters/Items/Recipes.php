@@ -57,6 +57,7 @@ class Recipes extends UpdaterAbstract{
 		}
 
 		$this->processURLs();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableRecipes);
 
 		$this->logger->info(__METHOD__.': end');
 	}

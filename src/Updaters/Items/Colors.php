@@ -53,6 +53,7 @@ class Colors extends UpdaterAbstract{
 
 		$this->processURLs();
 		$this->updateStats();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableColors);
 
 		$this->logger->info(__METHOD__.': end');
 	}

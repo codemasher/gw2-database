@@ -46,6 +46,8 @@ class CreateRegions extends UpdaterAbstract{
 		$this->db->truncate->table($this->options->tableMaps)->query();
 
 		$this->processURLs();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableRegions);
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableMaps);
 		$this->logger->info(__METHOD__.': end');
 	}
 

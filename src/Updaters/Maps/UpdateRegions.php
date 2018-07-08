@@ -41,6 +41,7 @@ class UpdateRegions extends UpdaterAbstract{
 		}
 
 		$this->processURLs();
+		$this->db->raw('OPTIMIZE TABLE '.$this->options->tableRegions);
 		$this->logger->info(__METHOD__.': end');
 	}
 
