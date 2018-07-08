@@ -12,58 +12,60 @@
 
 namespace chillerlan\GW2DB\Updaters\Maps;
 
-use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
-use chillerlan\TinyCurl\{ResponseInterface, URL};
+use chillerlan\GW2DB\Updaters\{UpdaterAbstract, UpdaterException};
+use chillerlan\HTTP\HTTPResponseInterface;
 
-class CreateRegions extends MultiRequestAbstract{
+class CreateRegions extends UpdaterAbstract{
 
-	public function init(){
-		$this->starttime = microtime(true);
-		$this->logToCLI(__METHOD__.': start');
+	/**
+	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 *
+	 * @return void
+	 */
+	public function init():void{
+		$this->logger->info(__METHOD__.': start');
 
 		$floors = $this->db->select
-			->from([getenv('TABLE_GW2_MAP_FLOORS')])
-			->execute();
+			->from([$this->options->tableMapFloors])
+			->query();
 
 		if(!$floors || $floors->length === 0){
 			throw new UpdaterException('failed to fetch floors from db, please run CreateFloors before');
 		}
 
-		$urls = [];
-
 		foreach($floors as $floor){
 			$regions = json_decode($floor->regions, true);
 			if(is_array($regions) && !empty($regions)){
 				foreach($regions as $regionID){
-					$urls[] = new URL(self::API_BASE.'/continents/'.$floor->continent_id.'/floors/'.$floor->floor_id.'/regions/'.$regionID);
+					$this->urls[] = ['/continents/'.$floor->continent_id.'/floors/'.$floor->floor_id.'/regions/'.$regionID];
 				}
 			}
 		}
 
-		$this->db->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_REGIONS'));
-		$this->db->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAPS'));
+		$this->db->truncate->table($this->options->tableRegions)->query();
+		$this->db->truncate->table($this->options->tableMaps)->query();
 
-		$this->fetchMulti($urls);
-		$this->logToCLI(__METHOD__.': end');
+		$this->processURLs();
+		$this->logger->info(__METHOD__.': end');
 	}
 
 	/**
-	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 * @param \chillerlan\HTTP\HTTPResponseInterface $response
+	 * @param array|null                             $params
 	 *
-	 * @return mixed
+	 * @return void
 	 */
-	protected function processResponse(ResponseInterface $response){
-		$info = $response->info;
+	protected function processResponse(HTTPResponseInterface $response, array $params = null):void{
 		$data = $response->json;
 		$maps = [];
 
-		list($continent, $floor, $region) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
+		[$continent, $floor, $region] = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($response->url, PHP_URL_PATH)));
 
 		foreach($data->maps as $map){
 			$maps[] = $map->id;
 
 			$this->db->insert
-				->into(getenv('TABLE_GW2_MAPS'))
+				->into($this->options->tableMaps)
 				->values([
 					'map_id'         => $map->id,
 					'continent_id'   => $continent,
@@ -75,13 +77,13 @@ class CreateRegions extends MultiRequestAbstract{
 					'min_level'      => $map->min_level,
 					'max_level'      => $map->max_level,
 				])
-				->execute();
+				->query();
 
-			$this->logToCLI('added map #'.$map->id.', continent: '.$continent.', floor: '.$floor.', region: '.$region);
+			$this->logger->info('added map #'.$map->id.', continent: '.$continent.', floor: '.$floor.', region: '.$region);
 		}
 
 		$this->db->insert
-			->into(getenv('TABLE_GW2_REGIONS'))
+			->into($this->options->tableRegions)
 			->values([
 				'continent_id' => $continent,
 				'floor_id'     => $floor,
@@ -90,9 +92,9 @@ class CreateRegions extends MultiRequestAbstract{
 				'maps'         => json_encode($maps),
 				'name_en'      => $data->name,
 			])
-			->execute();
+			->query();
 
-		return true;
+		$this->logger->info('added region #'.$region.', continent: '.$continent);
 	}
 
 }

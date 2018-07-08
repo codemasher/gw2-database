@@ -13,23 +13,20 @@
 namespace chillerlan\GW2DB\Updaters\Items;
 
 use chillerlan\GW2DB\Helpers;
-use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
-use chillerlan\TinyCurl\{ResponseInterface, URL};
+use chillerlan\GW2DB\Updaters\{UpdaterAbstract, UpdaterException};
+use chillerlan\HTTP\HTTPResponseInterface;
 
-/**
- *
- */
-class Recipes extends MultiRequestAbstract{
+class Recipes extends UpdaterAbstract{
 
-	const CRAFT_ARMORSMITH    = 0x1;
-	const CRAFT_ARTIFICER     = 0x2;
-	const CRAFT_CHEF          = 0x4;
-	const CRAFT_HUNTSMAN      = 0x8;
-	const CRAFT_JEWELER       = 0x10;
-	const CRAFT_LEATHERWORKER = 0x20;
-	const CRAFT_TAILOR        = 0x40;
-	const CRAFT_WEAPONSMITH   = 0x80;
-	const CRAFT_SCRIBE        = 0x100;
+	protected const CRAFT_ARMORSMITH    = 0x1;
+	protected const CRAFT_ARTIFICER     = 0x2;
+	protected const CRAFT_CHEF          = 0x4;
+	protected const CRAFT_HUNTSMAN      = 0x8;
+	protected const CRAFT_JEWELER       = 0x10;
+	protected const CRAFT_LEATHERWORKER = 0x20;
+	protected const CRAFT_TAILOR        = 0x40;
+	protected const CRAFT_WEAPONSMITH   = 0x80;
+	protected const CRAFT_SCRIBE        = 0x100;
 
 	/**
 	 * @var array
@@ -38,72 +35,74 @@ class Recipes extends MultiRequestAbstract{
 
 	/**
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 *
+	 * @return void
 	 */
-	public function init(){
-		$this->refreshIDs('recipes', getenv('TABLE_GW2_RECIPES'));
+	public function init():void{
+		$this->logger->info(__METHOD__.': start');
+		$this->refreshIDs('/recipes', $this->options->tableRecipes);
 
 		$this->recipes = $this->db->select
 			->cols(['id', 'data', 'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']])
-			->from([getenv('TABLE_GW2_RECIPES')])
-			->execute('id')
+			->from([$this->options->tableRecipes])
+			->query('id')
 			->__toArray();
 
 		if(count($this->recipes) < 1){
 			throw new UpdaterException('failed to fetch recipe IDs from db');
 		}
 
-		$urls = [];
-
 		foreach(array_chunk($this->recipes, self::CHUNK_SIZE) as $chunk){
-			$urls[] = new URL(self::API_BASE.'/recipes', ['ids' => implode(',', array_column($chunk, 'id'))]);
+			$this->urls[] = ['/recipes', ['ids' => implode(',', array_column($chunk, 'id'))]];
 		}
 
-		$this->fetchMulti($urls);
-		$this->logToCLI(__METHOD__.': end');
+		$this->processURLs();
+
+		$this->logger->info(__METHOD__.': end');
 	}
 
 	/**
-	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 * @param \chillerlan\HTTP\HTTPResponseInterface $response
+	 * @param array|null                             $params
 	 *
-	 * @return mixed
+	 * @return void
 	 */
-	protected function processResponse(ResponseInterface $response){
-		$info = $response->info;
+	protected function processResponse(HTTPResponseInterface $response, array $params = null):void{
 		$json = $response->json_array;
 
 		if(!is_array($json) || empty($json)){
-			return false;
+			$this->addRetry('invalid response, retrying URL.', $params);
+			return;
 		}
 
 		$result = $this->db->update
-			->table(getenv('TABLE_GW2_RECIPES'))
+			->table($this->options->tableRecipes)
 			->set([
 				'output_id', 'output_count', 'disciplines', 'rating', 'type', 'from_item',
 				'ing_id_1', 'ing_count_1', 'ing_id_2', 'ing_count_2', 'ing_id_3', 'ing_count_3',
 				'ing_id_4', 'ing_count_4', 'data', 'updated'
 			], false)
 			->where('id', '?', '=', false)
-			->execute(null, $json, [$this, 'callback']);
+			->callback($json, [$this, 'insertCallback']);
 
 		if(!$result){
-			$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
-
-			return new URL($info->url);
+			$this->addRetry('SQL insert failed, retrying URL. ('.$response->url.')', $params);
+			return;
 		}
 
-		if(!empty($this->changes)){
+		if(!empty($this->diff)){
 
 			$result = $this->db->insert
-				->into(getenv('TABLE_GW2_DIFF'))
-				->values($this->changes)
-				->execute();
+				->into($this->options->tableDiff)
+				->values($this->diff)
+				->multi();
 
 			if($result){
-				$this->changes = [];
+				$this->diff = [];
 			}
 		}
 
-		return true;
+		$this->logger->info(md5($response->url).' updated');
 	}
 
 	/**
@@ -111,7 +110,7 @@ class Recipes extends MultiRequestAbstract{
 	 *
 	 * @return array
 	 */
-	public function callback(array $recipe):array{
+	public function insertCallback(array $recipe):array{
 		$recipe = $this->sortRecipe($recipe);
 
 		$old_data = $this->recipes[$recipe['id']]['data'] ?? false;
@@ -121,21 +120,21 @@ class Recipes extends MultiRequestAbstract{
 
 		if(!empty($old) && !empty($diff)){
 
-			$this->changes[] = [
+			$this->diff[] = [
 				'db_id' => $recipe['id'],
 				'type' => 'recipe',
 				'date' => $this->recipes[$recipe['id']]['update_time'] ?? $this->recipes[$recipe['id']]['date_added'] ?? time(),
 				'data' => json_encode($old),
 			];
 
-			$this->logToCLI('recipe changed #'.$recipe['id'].' '.print_r($diff, true));
+			$this->logger->info('recipe changed #'.$recipe['id'].' '.json_encode($diff));
 		}
 
 		$disciplines = array_map(function($value){
 			return constant('self::CRAFT_'.strtoupper($value));
 		}, $recipe['disciplines']);
 
-		$this->logToCLI('updated recipe #'.$recipe['id']);
+		$this->logger->info('updated recipe #'.$recipe['id']);
 
 		return [
 			$recipe['output_item_id'],
@@ -181,4 +180,5 @@ class Recipes extends MultiRequestAbstract{
 
 		return $recipe;
 	}
+
 }

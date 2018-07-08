@@ -9,12 +9,16 @@
 
 namespace chillerlan\GW2DBCLI;
 
-require_once __DIR__.'/../vendor/autoload.php';
-require_once __DIR__.'/functions.php';
-
-use chillerlan\Database\{Connection, Options, Drivers\PDO\PDOMySQLDriver, Query\Dialects\MySQLQueryBuilder};
+use chillerlan\Database\{Database, Drivers\MySQLiDrv};
+use chillerlan\GW2DB\GW2DBOptions;
+use chillerlan\Logger\Log;
+use chillerlan\Logger\Output\ConsoleLog;
 use chillerlan\SimpleCache\{Cache, Drivers\MemoryCacheDriver};
 use chillerlan\Traits\DotEnv;
+use Psr\Log\LogLevel;
+
+require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/functions.php';
 
 if(!is_cli()){
 	throw new \Exception('no way, buddy.');
@@ -25,13 +29,17 @@ mb_internal_encoding('UTF-8');
 
 $env = (new DotEnv(__DIR__.'/../config', '.env'))->load();
 
-$db = new Connection(new Options([
-	'driver'       => PDOMySQLDriver::class,
-	'querybuilder' => MySQLQueryBuilder::class,
-	'host'     => $env->get('DB_HOST'),
-	'port'     => $env->get('DB_PORT'),
-	'database' => $env->get('DB_DATABASE'),
-	'username' => $env->get('DB_USERNAME'),
-	'password' => $env->get('DB_PASSWORD'),
-]), new Cache(new MemoryCacheDriver));
+$options = new GW2DBOptions([
+	'driver'      => MySQLiDrv::class,
+	'host'        => $env->DB_HOST,
+	'port'        => $env->DB_PORT,
+	'database'    => $env->DB_DATABASE,
+	'username'    => $env->DB_USERNAME,
+	'password'    => $env->DB_PASSWORD,
+	'ca_info'     => __DIR__.'/../config/cacert.pem',
+	'userAgent'   => 'chillerlanPhpOAuth/2.0.1 +https://github.com/codemasher/gw2-database',
+	'minLogLevel' => LogLevel::INFO,
+]);
 
+$log = (new Log)->addInstance(new ConsoleLog($options), 'console');
+$db  = new Database($options, new Cache(new MemoryCacheDriver), $log);

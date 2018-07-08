@@ -12,6 +12,9 @@
 
 namespace chillerlan\GW2DB\Updaters;
 
+/**
+ * @method setLogger(\Psr\Log\LoggerInterface $logger)
+ */
 interface UpdaterInterface{
 
 	const API_BASE      = 'https://api.guildwars2.com/v2';
@@ -23,6 +26,9 @@ interface UpdaterInterface{
 
 	const CONTINENTS = [1, 2];
 
-	public function init();
+	const DB_CHUNK_SIZE = 500;
+	const MAX_RETRIES = 3;
+
+	public function init():void;
 
 }

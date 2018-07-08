@@ -10,31 +10,39 @@
 
 namespace chillerlan\GW2DBCLI;
 
-/** @var \chillerlan\Database\Connection $db */
+use chillerlan\GW2DB\{GW2API, GW2DB};
+use chillerlan\GW2DB\Updaters\Items\{Colors, Items, Recipes, Skins};
+use chillerlan\GW2DB\Updaters\Maps\{CreateFloors, CreateRegions, UpdateRegions, UpdateMaps};
+use chillerlan\HTTP\CurlClient;
+use chillerlan\OAuth\Storage\MemoryStorage;
+
+/** @var \chillerlan\Database\Database $db */
 $db = null;
+
+/** @var \chillerlan\Traits\DotEnv $env */
+$env = null;
+
+/** @var \Psr\Log\LoggerInterface $env */
+$log = null;
+
+/** @var \chillerlan\GW2DB\GW2DBOptions $options */
+$options = null;
 
 require_once __DIR__.'/common.php';
 
-use chillerlan\GW2DB\Updaters\Items\{Colors, ItemTempUpdater, Recipes, Skins, UpdateItemDB};
-use chillerlan\GW2DB\Updaters\Maps\{CreateFloors, CreateRegions, UpdateMaps, UpdateRegions};
-use chillerlan\TinyCurl\{Request, RequestOptions};
+$gw2api = new GW2API(new CurlClient($options), new MemoryStorage, $options);
+$gw2api->storeGW2Token($env->GW2_APIKEY);
 
-$request = new Request(new RequestOptions([
-	'ca_info' => __DIR__.'/../config/update-me-cacert.pem',
-]));
+$gw2db = new GW2DB($gw2api, $db, $log);
 
-foreach([
-		ItemTempUpdater::class,
-		UpdateItemDB::class,
-		CreateFloors::class,
-		CreateRegions::class,
-		UpdateRegions::class,
-		UpdateMaps::class,
-		Recipes::class,
-		Skins::class,
-		Colors::class,
-	] as $updater){
-	/** @var \chillerlan\GW2DB\Updaters\UpdaterInterface $updater */
-	$updater = new $updater($db, $request);
-	$updater->init();
-}
+$gw2db->update([
+#	Items::class,
+#	Colors::class,
+#	Recipes::class,
+#	Skins::class,
+#	CreateFloors::class,
+#	CreateRegions::class,
+#	UpdateRegions::class,
+	UpdateMaps::class,
+]);
+

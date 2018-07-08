@@ -12,14 +12,11 @@
 
 namespace chillerlan\GW2DB\Updaters\Items;
 
-use chillerlan\Database\ResultRow;
 use chillerlan\GW2DB\Helpers;
-use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
-use chillerlan\TinyCurl\{ResponseInterface, URL};
+use chillerlan\GW2DB\Updaters\{UpdaterAbstract, UpdaterException};
+use chillerlan\HTTP\HTTPResponseInterface;
 
-/**
- */
-class Colors extends MultiRequestAbstract{
+class Colors extends UpdaterAbstract{
 
 	/**
 	 * @var array
@@ -28,74 +25,80 @@ class Colors extends MultiRequestAbstract{
 
 	/**
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 *
+	 * @return void
 	 */
-	public function init(){
-		$this->refreshIDs('colors', getenv('TABLE_GW2_COLORS'));
+	public function init():void{
+		$this->logger->info(__METHOD__.': start');
+		$this->refreshIDs('/colors', $this->options->tableColors);
 
 		$this->colors = $this->db->select
 			->cols([
 				'id', 'data_de', 'data_en', 'data_es', 'data_fr', 'data_zh',
 				'update_time' => ['update_time', 'UNIX_TIMESTAMP'], 'date_added' => ['date_added', 'UNIX_TIMESTAMP']
 			])
-			->from([getenv('TABLE_GW2_COLORS')])
-			->execute('id')
+			->from([$this->options->tableColors])
+			->query('id')
 			->__toArray();
 
 		if(count($this->colors) < 1){
 			throw new UpdaterException('failed to fetch color data from db');
 		}
 
-		$urls = [];
-
 		foreach(array_chunk($this->colors, self::CHUNK_SIZE) as $chunk){
 			foreach(self::API_LANGUAGES as $lang){
-				$urls[] = new URL(self::API_BASE.'/colors', ['lang' => $lang, 'ids' => implode(',', array_column($chunk, 'id'))]);
+				$this->urls[] = ['/colors', ['lang' => $lang, 'ids' => implode(',', array_column($chunk, 'id'))]];
 			}
 		}
 
-		$this->fetchMulti($urls);
+		$this->processURLs();
 		$this->updateStats();
-		$this->logToCLI(__METHOD__.': end');
+
+		$this->logger->info(__METHOD__.': end');
 	}
 
 	/**
-	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 * @param \chillerlan\HTTP\HTTPResponseInterface $response
+	 * @param array|null                             $params
 	 *
-	 * @return mixed
+	 * @return void
 	 */
-	protected function processResponse(ResponseInterface $response){
-		$info = $response->info;
+	protected function processResponse(HTTPResponseInterface $response, array $params = null):void{
+		$this->lang = $params[1]['lang'];
+		$json       = $response->json_array;
 
-		parse_str(parse_url($info->url, PHP_URL_QUERY), $params);
-
-		$this->lang = $response->headers->{'content-language'} ?: $params['lang'];
-
-		if(!$this->checkResponseLanguage($this->lang)){
-			return false;
+		if(!is_array($json) || empty($json)){
+			$this->addRetry('invalid response, retrying URL.', $params);
+			return;
 		}
+
+		parse_str(parse_url($response->url, PHP_URL_QUERY), $query);
 
 		$result = $this->db->update
-			->table(getenv('TABLE_GW2_COLORS'))
+			->table($this->options->tableColors)
 			->set(['name_'.$this->lang, 'data_'.$this->lang], false)
 			->where('id', '?', '=', false)
-			->execute(null, $response->json_array, [$this, 'callback']);
+			->callback($response->json_array, [$this, 'insertCallback']);
 
 		if(!$result){
-			$this->logToCLI('SQL insert failed, retrying URL. ('.$info->url.')');
-
-			return new URL($info->url);
+			$this->addRetry('SQL insert failed, retrying URL. ('.$response->url.')', $params);
+			return;
 		}
 
-		if(!empty($this->changes)){
+		if(!empty($this->diff)){
 
-			if($this->db->insert->into(getenv('TABLE_GW2_DIFF'))->values($this->changes)->execute()){
-				$this->changes = [];
+			$result = $this->db->insert
+				->into($this->options->tableDiff)
+				->values($this->diff)
+				->multi();
+
+			if($result){
+				$this->diff = [];
 			}
 
 		}
 
-		$this->logToCLI('['.$this->lang.'] '.md5($info->url).' updated');
-		return true;
+		$this->logger->info('['.$this->lang.'] '.md5($response->url).' updated');
 	}
 
 	/**
@@ -103,14 +106,16 @@ class Colors extends MultiRequestAbstract{
 	 *
 	 * @return array
 	 */
-	public function callback(array $color){
+	public function insertCallback(array $color):array{
+#		$color = Helpers\array_sort_recursive($color);
+
 		$old_data = $this->colors[$color['id']]['data_'.$this->lang] ?? false;
 
 		$old   = !$old_data ? [] : json_decode($old_data, true);
 		$diff  = Helpers\array_diff_assoc_recursive($old, $color, true);
 
 		if(!empty($old) && !empty($diff)){
-			$this->changes[] = [
+			$this->diff[] = [
 				'db_id' => $color['id'],
 				'type'  => 'color',
 				'lang'  => $this->lang,
@@ -118,10 +123,10 @@ class Colors extends MultiRequestAbstract{
 				'data'  => json_encode($old),
 			];
 
-			$this->logToCLI('['.$this->lang.'] color changed #'.$color['id'].' '.print_r($diff, true));
+			$this->logger->info('['.$this->lang.'] color changed #'.$color['id'].' '.json_encode($diff));
 		}
 
-		$this->logToCLI('['.$this->lang.'] updated color data #'.$color['id']);
+		$this->logger->info('['.$this->lang.'] updated color data #'.$color['id']);
 
 		return [
 			$color['name'],
@@ -132,26 +137,35 @@ class Colors extends MultiRequestAbstract{
 
 	/**
 	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 *
+	 * @return void
 	 */
-	protected function updateStats(){
-		$this->colors = $this->db->select->cols(['data_en'])->from([getenv('TABLE_GW2_COLORS')])->execute();
+	protected function updateStats():void{
+		$this->colors = $this->db->select
+			->cols(['data_en'])
+			->from([$this->options->tableColors])
+			->query();
 
 		if(!$this->colors || $this->colors->length === 0){
 			throw new UpdaterException('failed to fetch color data from db');
 		}
 
 		$result = $this->db->update
-			->table(getenv('TABLE_GW2_COLORS'))
+			->table($this->options->tableColors)
 			->set(['hue', 'material', 'rarity', 'updated'], false)
 			->where('id', '?', '=', false)
-			->execute(null, $this->colors->__toArray(), function(array $color):array{
+			->callback($this->colors->__toArray(), function(array $color):array{
 				$data = json_decode($color['data_en']);
 
-				list($hue, $material, $rarity) = !empty($data->categories) ? $data->categories : [null, null, null];
+				$this->logger->info('updated color stats #'.$data->id);
 
-				$this->logToCLI('updated color stats #'.$data->id);
-
-				return [$hue, $material, $rarity, 1, $data->id];
+				return [
+					$data->categories[0] ?? null,
+					$data->categories[1] ?? null,
+					$data->categories[2] ?? null,
+					1,
+					$data->id
+				];
 			});
 
 		if(!$result){

@@ -12,55 +12,56 @@
 
 namespace chillerlan\GW2DB\Updaters\Maps;
 
-use chillerlan\GW2DB\Updaters\MultiRequestAbstract;
-use chillerlan\TinyCurl\{ResponseInterface, URL};
+use chillerlan\GW2DB\Updaters\UpdaterAbstract;
+use chillerlan\HTTP\HTTPResponseInterface;
 
-class CreateFloors extends MultiRequestAbstract{
+class CreateFloors extends UpdaterAbstract{
 
-	public function init(){
-		$this->starttime = microtime(true);
-		$this->logToCLI(__METHOD__.': start');
+	/**
+	 * @return void
+	 */
+	public function init():void{
+		$this->logger->info(__METHOD__.': start');
 
 		// get floor URLs
-		$urls = [];
 		foreach(self::CONTINENTS as $continent){
-			$response = $this->request->fetch(new URL(self::API_BASE.'/continents/'.$continent));
-			if($response->info->http_code === 200){
+			/** @var HTTPResponseInterface $response */
+			$response = $this->gw2->request('/continents/'.$continent);
+			if($response->headers->statuscode === 200){
 				$floordata = $response->json;
 				if(is_array($floordata->floors)){
 					foreach($floordata->floors as $floor){
-						$urls[] = new URL(self::API_BASE.'/continents/'.$continent.'/floors/'.$floor.'/regions');
+						$this->urls[] = ['/continents/'.$continent.'/floors/'.$floor.'/regions'];
 					}
 				}
 			}
 		}
 
-		$this->db->raw('TRUNCATE TABLE '.getenv('TABLE_GW2_MAP_FLOORS'));
-		$this->fetchMulti($urls);
-		$this->logToCLI(__METHOD__.': end');
+		$this->db->truncate->table($this->options->tableMapFloors)->query();
+
+		$this->processURLs();
+
+		$this->logger->info(__METHOD__.': end');
 	}
 
 	/**
-	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 * @param \chillerlan\HTTP\HTTPResponseInterface $response
+	 * @param array|null                             $params
 	 *
-	 * @return mixed
+	 * @return void
 	 */
-	protected function processResponse(ResponseInterface $response){
-		$info = $response->info;
-
-		list($continent, $floor) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
+	protected function processResponse(HTTPResponseInterface $response, array $params = null):void{
+		[$continent, $floor] = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($response->url, PHP_URL_PATH)));
 
 		$this->db->insert
-			->into(getenv('TABLE_GW2_MAP_FLOORS'))
+			->into($this->options->tableMapFloors)
 			->values([
 				'continent_id' => $continent,
 				'floor_id'     => $floor,
 				'regions'      => json_encode($response->json),
 			])
-			->execute();
+			->query();
 
-		$this->logToCLI('updating continent #'.$continent.', floor '.$floor.', data: '.$response->body->content);
-
-		return true;
+		$this->logger->info('updating continent #'.$continent.', floor '.$floor);
 	}
 }

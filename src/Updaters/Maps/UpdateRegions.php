@@ -12,66 +12,60 @@
 
 namespace chillerlan\GW2DB\Updaters\Maps;
 
-use chillerlan\GW2DB\Updaters\{MultiRequestAbstract, UpdaterException};
-use chillerlan\TinyCurl\{ResponseInterface, URL};
+use chillerlan\GW2DB\Updaters\{UpdaterAbstract, UpdaterException};
+use chillerlan\HTTP\HTTPResponseInterface;
 
-class UpdateRegions extends MultiRequestAbstract{
+class UpdateRegions extends UpdaterAbstract{
 
-	public function init(){
-		$this->starttime = microtime(true);
-		$this->logToCLI(__METHOD__.': start');
+	/**
+	 * @throws \chillerlan\GW2DB\Updaters\UpdaterException
+	 *
+	 * @return void
+	 */
+	public function init():void{
+		$this->logger->info(__METHOD__.': start');
 
 		$regions = $this->db->select
 			->cols(['continent_id', 'region_id', 'floor_id'])
-			->from([getenv('TABLE_GW2_REGIONS')])
-			->execute();
+			->from([$this->options->tableRegions])
+			->query();
 
 		if(!$regions || !$regions->length === 0){
 			throw new UpdaterException('failed to fetch regions from db, please run CreateRegions before');
 		}
 
-		$urls = [];
-
 		foreach($regions as $region){
 			foreach(self::API_LANGUAGES as $lang){
-				$urls[] = new URL(self::API_BASE.'/continents/'.$region->continent_id.'/floors/'.$region->floor_id.'/regions/'.$region->region_id, ['lang' => $lang]);
+				$this->urls[] = ['/continents/'.$region->continent_id.'/floors/'.$region->floor_id.'/regions/'.$region->region_id, ['lang' => $lang]];
 			}
 		}
 
-		$this->fetchMulti($urls);
-		$this->logToCLI(__METHOD__.': end');
+		$this->processURLs();
+		$this->logger->info(__METHOD__.': end');
 	}
 
 	/**
-	 * @param \chillerlan\TinyCurl\ResponseInterface $response
+	 * @param \chillerlan\HTTP\HTTPResponseInterface $response
+	 * @param array|null                             $params
 	 *
-	 * @return mixed
+	 * @return void
 	 */
-	protected function processResponse(ResponseInterface $response){
-		$info = $response->info;
+	protected function processResponse(HTTPResponseInterface $response, array $params = null):void{
+		$lang = $params[1]['lang'];
 
-		parse_str(parse_url($info->url, PHP_URL_QUERY), $params);
-
-		$lang = $response->headers->{'content-language'} ?: $params['lang'];
-
-		if(!$this->checkResponseLanguage($lang)){
-			return false;
-		}
-
-		list($continent, $floor, $region) = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($info->url, PHP_URL_PATH)));
+		[$continent, $floor, $region] = explode('/', str_replace(['/v2/continents/', 'floors/', '/regions'], '', parse_url($response->url, PHP_URL_PATH)));
 
 		$this->db->update
-			->table(getenv('TABLE_GW2_REGIONS'))
+			->table($this->options->tableRegions)
 			->set([
 				'name_'.$lang  => $response->json->name,
 			])
 			->where('continent_id', $continent)
 			->where('region_id', $region)
 			->where('floor_id', $floor)
-			->execute();
+			->query();
 
-		$this->logToCLI('updated region #'.$region.' ('.$lang.'), continent: '.$continent.', floor: '.$floor);
-
-		return true;
+		$this->logger->info('updated region #'.$region.' ('.$lang.'), continent: '.$continent.', floor: '.$floor);
 	}
+
 }
