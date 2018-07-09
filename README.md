@@ -1,24 +1,43 @@
-#gw2-database
+# gw2-database
 
 [![version][packagist-badge]][packagist]
 [![license][license-badge]][license]
+[![Travis CI][travis-badge]][travis]
 [![Gitter][gitter-badge]][gitter]
 
-[packagist-badge]: https://img.shields.io/packagist/v/chillerlan/gw2-database.svg
-[packagist]: https://packagist.org/packages/chillerlan/gw2-database
-[license-badge]: https://img.shields.io/packagist/l/chillerlan/gw2-database.svg
+[packagist-badge]: https://img.shields.io/packagist/v/codemasher/gw2-database.svg?style=flat-square
+[packagist]: https://packagist.org/packages/codemasher/gw2-database
+[license-badge]: https://img.shields.io/packagist/l/codemasher/gw2-database.svg?style=flat-square
 [license]: https://github.com/codemasher/gw2-database/blob/master/LICENSE
-[gitter-badge]: https://img.shields.io/gitter/room/nwjs/nw.js.svg
+[travis-badge]: https://img.shields.io/travis/codemasher/gw2-database.svg?style=flat-square
+[travis]: https://travis-ci.org/codemasher/gw2-database
+[gitter-badge]: https://img.shields.io/gitter/room/nwjs/nw.js.svg?style=flat-square
 [gitter]: https://gitter.im/chillerlan/gw2hero.es
 
-**[Installation instructions](https://github.com/codemasher/gw2-database/issues/5#issuecomment-203640540)**
-
 ## Requirements
-- **PHP 7+**
+- **PHP 7.2+**
 - **MySQL** or **MariaDB**
 
-##Thanks
-- [Darthmaim](https://github.com/darthmaim) for [hosting](http://gw2wbot.darthmaim.de/smiley/) and co-developing
+## Installation
+**requires [composer](https://getcomposer.org)**
+
+*composer.json* (note: replace `dev-master` with a version boundary)
+```json
+{
+	"require": {
+		"php": ">=7.2.0",
+		"codemasher/gw2-database": "dev-master"
+	}
+}
+```
+
+#### Manual installation
+Download the desired version of the package from [master](https://github.com/codemasher/gw2-database/archive/master.zip) or
+[release](https://github.com/codemasher/gw2-database/releases) and extract the contents to your project folder.  After that:
+- run `composer install` to install the required dependencies and generate `/vendor/autoload.php`.
+- if you use a custom autoloader, point the namespace `chillerlan\GW2DB` to the folder `src` of the package
+
+Profit!
 
 ##Disclaimer!
 I don't take responsibility for molten CPUs, smashed keyboards, broken screens etc. Use at your own risk! ;)
