@@ -36,13 +36,13 @@ $gw2api->storeGW2Token($env->GW2_APIKEY);
 $gw2db = new GW2DB($gw2api, $db, $log);
 
 $gw2db->update([
-#	Items::class,
-#	Colors::class,
-#	Recipes::class,
-#	Skins::class,
-#	CreateFloors::class,
-#	CreateRegions::class,
-#	UpdateRegions::class,
+	Items::class,
+	Colors::class,
+	Recipes::class,
+	Skins::class,
+	CreateFloors::class,
+	CreateRegions::class,
+	UpdateRegions::class,
 	UpdateMaps::class,
 ]);
 

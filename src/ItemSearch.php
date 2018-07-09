@@ -14,10 +14,11 @@
 
 namespace chillerlan\GW2DB;
 
-use chillerlan\Database\{Connection, Result};
+use chillerlan\Database\{Drivers\DriverInterface, Result};
 use chillerlan\GW2DB\Helpers as func;
 use chillerlan\GW2DB\Helpers\Chatlinks\Chatlink;
 use chillerlan\GW2DB\Updaters\UpdaterInterface;
+use chillerlan\Traits\ContainerInterface;
 
 /**
  * AJAX methods for the item search
@@ -25,25 +26,35 @@ use chillerlan\GW2DB\Updaters\UpdaterInterface;
 class ItemSearch{
 
 	/**
-	 * @var \chillerlan\Database\Connection
+	 * @var \chillerlan\Database\Database
 	 */
 	protected $db;
 
 	/**
 	 * @var \chillerlan\GW2DB\Helpers\Chatlinks\Chatlink
 	 */
-	protected $Chatlink;
+	protected $chatlink;
+
+	/**
+	 * @var \chillerlan\GW2DB\GW2DBOptions
+	 */
+	protected $options;
 
 	/**
 	 * ItemSearch constructor.
 	 *
-	 * @param \chillerlan\Database\Connection $db
+	 * @param \chillerlan\Traits\ContainerInterface        $options
+	 * @param \chillerlan\Database\Drivers\DriverInterface $db
+	 *
+	 * @throws \chillerlan\Database\Drivers\DriverException
 	 */
-	public function __construct(Connection $db){
-		$this->db = $db;
+	public function __construct(ContainerInterface $options, DriverInterface $db){
+		$this->options = $options;
+		$this->db      = $db;
+
 		$this->db->connect();
 
-		$this->Chatlink = new Chatlink;
+		$this->chatlink = new Chatlink;
 	}
 
 	/**
@@ -55,11 +66,11 @@ class ItemSearch{
 		// list types and subtypes
 		$combinations = $this->db->select
 			->cols(['type', 'subtype'])
-			->from(['gw2_items'])
+			->from([$this->options->tableItems])
 			->groupBy(['type', 'subtype'])
 			->orderBy(['type', 'subtype'])
 			->cached()
-			->execute();
+			->query();
 
 		foreach($combinations as $sub){
 			$response['subtypes'][$sub['type']][] = $sub['subtype'];
@@ -71,7 +82,7 @@ class ItemSearch{
 		$combinations = $this->db->select
 			->from(['gw2_attribute_combinations'])
 			->cached()
-			->execute()
+			->query()
 			->__toArray();
 
 		$response['combinations'] = array_map(function($c){
@@ -92,6 +103,10 @@ class ItemSearch{
 
 				if(!empty($c['attribute3'])){
 					$combination['attributes'][] = $c['attribute3'];
+
+					if(!empty($c['attribute4'])){
+						$combination['attributes'][] = $c['attribute4'];
+					}
 				}
 			}
 
@@ -142,7 +157,7 @@ class ItemSearch{
 
 		$q = $this->db->select
 			->cols(['name' => 'name_'.$lang, 'id', 'level', 'rarity'])//, 'data' => 'data_'.$lang
-			->from(['gw2_items'])
+			->from([$this->options->tableItems])
 			->orderBy([$orderby => isset($form['orderdir']) && $form['orderdir'] === 'desc' ? 'DESC' : 'ASC']);
 
 		// determine search mode: id, id-range, string (is_int() doesn't work here!)
@@ -217,7 +232,7 @@ class ItemSearch{
 			->limit($limit)
 			->offset($pagination['pages'][$page] ?? 0)
 			->cached()
-			->execute();
+			->query();
 
 		// process the result
 		if($result instanceof Result && $result->length > 0){
@@ -246,16 +261,68 @@ class ItemSearch{
 			return $response;
 		}
 
-		$lang = in_array($data['lang'], UpdaterInterface::API_LANGUAGES, true) ? $data['lang'] : 'de';
+		$lang = in_array($data['lang'], UpdaterInterface::API_LANGUAGES, true) ? $data['lang'] : 'en';
 
 		$result = $this->db->select
-			->from(['gw2_items'])
+			->from([$this->options->tableItems])
 			->where('id', $data['id'])
 			->limit(1)
 			->cached()
-			->execute();
+			->query();
 
 		$item = $result[0];
+
+		// wiki prefixes
+		$wikis = [
+			'de' => 'wiki-de',
+			'en' => 'wiki',
+			'es' => 'wiki-es',
+			'fr' => 'wiki-fr',
+		];
+
+		$redirect = [
+			'de' => 'WEITERLEITUNG',
+			'en' => 'REDIRECT',
+			'es' => 'REDIRECT',
+			'fr' => 'REDIRECTION',
+		];
+
+		$n = "\n";
+
+		// interwiki links
+		$interwiki =[
+			'de' => $n.'[[en:'.$item['name_en'].']]'.$n.'[[es:'.$item['name_es'].']]'.$n.'[[fr:'.$item['name_fr'].']]',
+			'en' => $n.'[[de:'.$item['name_de'].']]'.$n.'[[es:'.$item['name_es'].']]'.$n.'[[fr:'.$item['name_fr'].']]',
+			'es' => $n.'[[de:'.$item['name_de'].']]'.$n.'[[en:'.$item['name_en'].']]'.$n.'[[fr:'.$item['name_fr'].']]',
+			'fr' => $n.'[[de:'.$item['name_de'].']]'.$n.'[[en:'.$item['name_en'].']]'.$n.'[[es:'.$item['name_es'].']]'
+		];
+
+		// pre/suffix strings (used to strip from the names to create redirect links if needed etc.) - experimental
+		$fixes = [
+			'de' => [
+				'Grausame ', 'Grausamer ', 'Grausames ', 'Himmlische ', 'Himmlischer ', 'Himmlisches ', ' der Fäulnis', ' der Walküre', ' des Arzneikundlers', ' des Assassinen', ' des Berserkers', ' des Explorators',
+				' des Klerikers', ' des Ritters', ' des Wüters', ' des Schildwächters', ' des Spenders', ' der Magi', ' des Kavaliers', ' des Schamanen', ' des Siedlers', ' des Soldaten', 'Tollwütige ', 'Tollwütiger ', 'Tollwütiges ',
+				' des Jägers', 'Energische ', 'Energischer ', 'Energisches ', 'Plündernde ', 'Plündernder ', 'Plünderndes ', 'Starke ', 'Starker ', 'Starkes ', 'Veredelte ', 'Veredelter ', 'Veredeltes ',
+				'Verjüngende ', 'Verjüngender ', 'Verjüngendes ', 'Verwüstende ', 'Verwüstender ', 'Verwüstendes ', 'Wackere ', 'Wackerer ', 'Wackeres ', ' der Intelligenz', ' der Präzision', ' des Blutes', ' der Rage',
+				' des Reisenden', 'Faulverstärkte ', 'Faulverstärkter ', 'Faulverstärktes ', ' des Wanderers', ' der Nacht', ' des Wassers', ' des Kampfes', ' der Verdorbenheit', ' der Energie', ' der Luft',
+				' des Geomanten', ' der Erde', ' der Qual', ' der Blutgier', ' der Ogervernichtung', 'Durchdringende ', 'Durchdringender ', 'Durchdringendes ', 'Genesende ', 'Genesender ', 'Genesendes ',
+				' der Heftigkeit', ' der Träume', 'Unheilvolle ', 'Unheilvoller ', 'Unheilvolles ', ' der Grawlvernichtung', ' der Schlangenvernichtung', ' der Glut', ' der Schwäche', ' des Hydromanten',
+				'Heilende ', 'Heilender ', 'Heilendes ', ' der Genesung', ' des Humpelns', ' der Auslöschung', ' der Ausdauer', ' des Lebensfressers', ' der Wahrnehmung', ' des Feuers', ' der Dämonenbeschwörung', ' der Gefahr',
+				' der Reinheit', ' des Eises', ' der Kühle', ' des Lebens',
+			],//, ''
+
+			'en' => [
+				'Apothecary\'s ', 'Assassin\'s ', 'Berserker\'s ', 'Carrion ', 'Celestial ', 'Cleric\'s ', 'Giver\'s ', 'Knight\'s ', 'Rampager\'s ', 'Sentinel\'s ', 'Valkyrie ',
+				'Cavalier\'s ', 'Dire ', 'Magi\'s ', 'Rabid ', 'Settler\'s ', 'Shaman\'s ', 'Soldier\'s ', ' of Rage', ' of Intelligence', ' of Accuracy ', ' of Blood', ' of Energy', ' of Air', ' of Corruption', '',
+				' of Water', ' of Dreams', 'Explorer\'s ', ' of Force', 'Hunter\'s ', 'Rejuvenating ', 'Vigorous ', 'Hearty ', 'Honed ',
+			],
+			'es' => [' celestial'],
+			'fr' => [
+				' céleste', ' sanguinaire', ' de sang', ' de rage', ' nécrophage', ' de corruption', ' d\'eau', 'd\'exactitude', ' d\'intelligence', ' d\'air', ' d\'énergie', ' de soldat', ' enragé', ' de chamane',
+				' de rêves', ' de mage', ' de cavalier', ' d\'assassin', ' de berserker', ' de chevalier', ' d\'explorateur', ' de bienfaiteur', ' de valkyrie', ' d\'apothicaire', ' de maraudeur', ' de fermeté',
+				' de chasseur', ' de jouvence', ' vigoureux', ' vigoureuse', ' de vigueur', ' robuste', ' aiguisé',
+			],
+		];
 
 		// API response JSON
 		foreach(UpdaterInterface::API_LANGUAGES as $lng){
@@ -268,7 +335,7 @@ class ItemSearch{
 		$chatlink = new \stdClass;
 		$chatlink->id = $item->id;
 		$chatlink->type = Chatlink::ITEM;
-		$chatlink = $this->Chatlink->encode($chatlink);
+		$chatlink = $this->chatlink->encode($chatlink);
 
 		// ...do stuff. @todo
 
@@ -277,15 +344,35 @@ class ItemSearch{
 		<span class="description">'.nl2br($item->{'data_'.$lang}->description ?? '').'</span>
 		<h4>item id/chat code</h4>
 		<input type="text" readonly="readonly" value="'.$item->id.'" class="selectable" style="width:10em;" />
-		<input type="text" readonly="readonly" value="'.$chatlink.'" class="selectable" style="width:10em;" /><br />
-		
+		<input type="text" readonly="readonly" value="'.$chatlink.'" class="selectable" style="width:10em;" />';
+
+		$response['html'] .= '
 		<h4>icon</h4>
 		<img src="'.$icon_url.'"> <img src="'.$icon_api.'"><br />
 		<span style="font-size: 70%;">(gw2treasures icons have metadata stripped)</span><br />
 		<input type="text" readonly="readonly" value="'.$icon_url.'" class="selectable" /><br />
-		<input type="text" readonly="readonly" value="'.$icon_api.'" class="selectable" /><br />
-		
-		<h4>'.file_get_contents('http://www.sloganizer.net/en/outbound.php?slogan='.$item->name_en).'</h4>
+		<input type="text" readonly="readonly" value="'.$icon_api.'" class="selectable" />';
+
+		$response['html'] .= '
+		<h4>interwikis</h4>';
+
+		foreach($wikis as $l => $wiki){
+			$response['html'] .= '
+		<!--<img src="icons/'.$l.'.png">--> ['.$l.'] 
+		<a class="wikilink" href="https://'.$wiki.'.guildwars2.com/wiki/'.str_replace(' ', '_', $item['name_'.$l]).'" target="wiki-'.$l.'">'.$item['name_'.$l].'</a> -
+		<a href="https://'.$wiki.'.guildwars2.com/index.php?title='.str_replace(' ', '_', $item['name_'.$l]).'&amp;action=edit" target="wiki-'.$l.'">edit wiki</a>
+		(<a target="apidata" href="https://api.guildwars2.com/v2/items/'.$item['id'].'?lang='.$l.'">API</a> - 
+		<a target="gw2treasures" href="https://'.$l.'.gw2treasures.com/item/'.$item['id'].'">gw2treasures</a>)<br />
+		<input type="text" readonly="readonly" value="'.$item['name_'.$l].'" class="selectable" /><br />
+		<textarea cols="20" readonly="readonly" class="selectable" rows="3">'.$interwiki[$l].'</textarea><br />
+		<input type="text" readonly="readonly" value="#'.$redirect[$l].' [['.str_replace($fixes[$l], '', $item['name_'.$l]).']]" class="selectable" /><br />
+		<br />';
+		}
+
+			$response['html'] .= '
+		<h4>'.file_get_contents('http://www.sloganizer.net/en/outbound.php?slogan='.$item->name_en).'</h4>		
+		<a target="gw2spidy" href="https://www.gw2spidy.com/item/'.$item['id'].'">gw2spidy</a>
+
 		';
 
 		return $response;
@@ -293,9 +380,11 @@ class ItemSearch{
 
 	/**
 	 * @todo
+	 *
 	 * @param string $json
 	 *
 	 * @return array
+	 * @throws \chillerlan\GW2DB\Helpers\Chatlinks\ChatlinkException
 	 */
 	public function chatlinkSearch(string $json):array{
 		$response = [];
@@ -317,7 +406,7 @@ class ItemSearch{
 		// [&CwoEAAA=][&C88UAAA=][&C+YUAAA=][&DAQAAAA=][&DAMAAAA=][&AgHJrwAA][&C7oDAAA=][&AgG/twDgthIAAAZgAADnXwAA][&AgFdKwBAwGAAAA==][&AgGHKwBAwGAAAA==][&AgHbKwBAwGAAAA==][&AgEFLABAwGAAAA==][&AgFSLABACmEAAA==][&AgENqwBAwGAAAA==][&AgHtmADAIAkAALNfAAA=][&AgF7mgAA][&AgF6mgAA][&AgG7NABAs18AAA==][&AgFnNABAs18AAA==][&AgGsmgAA][&AgGEeQBA6l8AAA==][&AgF0OADAkhQAACpgAAA=][&AgF4eQBAJ2AAAA==][&AgF4eQBA/F8AAA==][&AvpkXwAA][&BDgAAAA=][&BEgAAAA=][&BDkDAAA=][&B+cCAAA=][&B3MVAAA=][&B30VAAA=][&CPIDAAA=][&CgEAAAA=][&CgIAAAA=][&CgcAAAA=][&CwQAAAA=][&DAQAAAA=][&AxcnAAA=][&AdsnAAA=]
 		$ids = [];
 		foreach($data['matches'] as $str){
-			$chatlink = $this->Chatlink->decode($str);
+			$chatlink = $this->chatlink->decode($str);
 
 			if($chatlink->type === Chatlink::ITEM){
 				$ids[] = $chatlink->id;
@@ -330,11 +419,11 @@ class ItemSearch{
 
 		$result = $this->db->select
 			->cols(['name' => 'name_'.$lang, 'id', 'level', 'rarity'])//, 'data' => 'data_'.$lang
-			->from(['gw2_items'])
+			->from([$this->options->tableItems])
 			->where('id', $ids, 'in')
 			->limit(250)
 			->cached()
-			->execute();
+			->query();
 
 
 		$response['data'] = $data['matches'];

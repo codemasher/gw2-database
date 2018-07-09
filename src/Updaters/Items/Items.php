@@ -87,13 +87,12 @@ class Items extends UpdaterAbstract{
 
 		$q = $this->db->update
 			->table($this->options->tableItemsTemp)
-			->set(['name_'.$lang, 'data_'.$lang], false)
+			->set(['type', 'subtype', 'data_'.$lang], false)
 			->where('id', '?', '=', false)
 			->callback($response->json, function($item) use ($lang){
 				$this->logger->info('updated temp item #'.$item->id.' '.$lang.' ('.htmlspecialchars($item->name).')');
-				return [$item->name, json_encode($item), $item->id];
+				return [$item->type, $item->details->type ?? null, json_encode($item), $item->id];
 			});
-
 
 		// retry if the insert failed for whatever reason
 		if(!$q){
@@ -261,7 +260,7 @@ class Items extends UpdaterAbstract{
 
 		// get the attribute combinations
 		$combos = $this->db->select
-			->cols(['id', 'attribute1', 'attribute2', 'attribute3'])
+			->cols(['id', 'attribute1', 'attribute2', 'attribute3', 'attribute4'])
 			->from([$this->options->tableAttributeCombo])
 			->query('id');
 
@@ -276,6 +275,10 @@ class Items extends UpdaterAbstract{
 
 				if(!empty($combo->attribute3)){
 					$combination['attributes'][] = $combo->attribute3;
+
+					if(!empty($combo->attribute4)){
+						$combination['attributes'][] = $combo->attribute4;
+					}
 				}
 			}
 
